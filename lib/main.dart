@@ -1,13 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vector_math/vector_math_64.dart' as vmath;
+
+import 'platform_utils.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1777,7 +1779,7 @@ class _TopToolbar extends StatelessWidget {
           icon: Icons.public,
           onPressed: () {
             // TODO: troque pela URL do seu site:
-                _openExternalUrl('https://seu-site-aqui.com');
+            openExternalUrl('https://seu-site-aqui.com');
           },
         ),
       ];
@@ -1955,7 +1957,7 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
     final id = selectedNodeId;
     if (id == null) return;
 
-    final downloads = _downloadsPath();
+    final downloads = kIsWeb ? null : getDownloadsPath();
     try {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
@@ -2289,10 +2291,10 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
                   onOpenLink: () {
                     final link = selected?.link;
                     if (link != null && link.trim().isNotEmpty) {
-                      _openExternalUrl(link.trim());
+                      openExternalUrl(link.trim());
                     }
                   },
-                  onOpenFile: (path) => _openFile(path),
+                  onOpenFile: (path) => openFile(path),
                 ),
               ),
             ],
@@ -3056,61 +3058,7 @@ class _InsertNewLineIntent extends Intent {
 ///  UTIL: open file / open url
 /// ============================
 
-/// ============================
-///  UTIL: open file / open url
-/// ============================
-
-String? _downloadsPath() {
-  try {
-    if (!Platform.isWindows) return null;
-    final user = Platform.environment['USERPROFILE'];
-    if (user == null) return null;
-    final downloads = '$user\\Downloads';
-    if (Directory(downloads).existsSync()) return downloads;
-  } catch (_) {}
-  return null;
-}
-
-Future<void> _openFile(String path) async {
-  try {
-    if (Platform.isWindows) {
-      // abre no app padrão
-      await Process.run('cmd', ['/c', 'start', '', path], runInShell: true);
-      return;
-    }
-    if (Platform.isMacOS) {
-      await Process.run('open', [path]);
-      return;
-    }
-    if (Platform.isLinux) {
-      await Process.run('xdg-open', [path]);
-      return;
-    }
-  } catch (_) {}
-}
-
-Future<void> _openExternalUrl(String url) async {
-  String u = url.trim();
-  if (u.isEmpty) return;
-  if (!u.startsWith('http://') && !u.startsWith('https://')) {
-    u = 'https://$u';
-  }
-
-  try {
-    if (Platform.isWindows) {
-      await Process.run('cmd', ['/c', 'start', '', u], runInShell: true);
-      return;
-    }
-    if (Platform.isMacOS) {
-      await Process.run('open', [u]);
-      return;
-    }
-    if (Platform.isLinux) {
-      await Process.run('xdg-open', [u]);
-      return;
-    }
-  } catch (_) {}
-}
+// util functions live in platform_utils.dart
 
 /// ============================
 ///  LOGO (PINECONE)
