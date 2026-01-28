@@ -2026,7 +2026,7 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
       '#FFFFFF'
     ];
     final n = doc.nodes[id]!;
-    final currentIndex = colors.indexOf(n.fillColor);
+    final currentIndex = colors.indexOf(n.fillColor ?? '');
     final next = colors[(currentIndex + 1) % colors.length];
     widget.controller.updateNodeStyle(widget.docId, id, fillColor: next);
   }
@@ -2045,7 +2045,7 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
     final id = selectedNodeId;
     if (id == null) return;
     final n = doc.nodes[id]!;
-    final next = (n.borderWidth + 0.5).clamp(0.5, 6);
+    final next = (n.borderWidth + 0.5).clamp(0.5, 6).toDouble();
     widget.controller.updateNodeStyle(widget.docId, id, borderWidth: next);
   }
 
