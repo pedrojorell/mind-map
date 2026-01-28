@@ -1,12 +1,20 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vector_math/vector_math_64.dart' as vmath;
+
+import 'platform_utils.dart';
+
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1031,12 +1039,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+
+            tooltip: widget.controller.themeMode == ThemeMode.dark
+                ? 'Modo branco'
+                : 'Modo escuro',
+            onPressed: widget.controller.toggleTheme,
+            icon: Icon(widget.controller.themeMode == ThemeMode.dark
+
             tooltip: controller.themeMode == ThemeMode.dark
                 ? 'Modo branco'
                 : 'Modo escuro',
             onPressed: controller.toggleTheme,
             icon: Icon(controller.themeMode == ThemeMode.dark
-                ? Icons.light_mode
+
+                       ? Icons.light_mode
                 : Icons.dark_mode),
           ),
           const SizedBox(width: 8),
@@ -1607,7 +1623,7 @@ class _TopToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final editor = MindMapEditorPageState.of(context);
+    final editor = MindMapEditorPage.of(context);
 
     List<Widget> buttons;
     if (ribbonIndex == 1) {
@@ -1776,7 +1792,7 @@ class _TopToolbar extends StatelessWidget {
           icon: Icons.public,
           onPressed: () {
             // TODO: troque pela URL do seu site:
-            _openExternalUrl('https://seu-site-aqui.com');
+            openExternalUrl('https://pxxon.com');
           },
         ),
       ];
@@ -1941,7 +1957,8 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
 
     // converte screen->scene
     final inv = Matrix4.inverted(_transform.value);
-    final v = inv.transform3(Vector3(centerScreen.dx, centerScreen.dy, 0));
+    final v =
+        inv.transform3(vmath.Vector3(centerScreen.dx, centerScreen.dy, 0));
     final near = Offset(v.x, v.y);
 
     final id = widget.controller.addFloating(widget.docId, near);
@@ -2024,7 +2041,7 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
       '#FFFFFF'
     ];
     final n = doc.nodes[id]!;
-    final currentIndex = colors.indexOf(n.fillColor);
+    final currentIndex = colors.indexOf(n.fillColor ?? '');
     final next = colors[(currentIndex + 1) % colors.length];
     widget.controller.updateNodeStyle(widget.docId, id, fillColor: next);
   }
@@ -2043,7 +2060,7 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
     final id = selectedNodeId;
     if (id == null) return;
     final n = doc.nodes[id]!;
-    final next = (n.borderWidth + 0.5).clamp(0.5, 6);
+    final next = (n.borderWidth + 0.5).clamp(0.5, 6).toDouble();
     widget.controller.updateNodeStyle(widget.docId, id, borderWidth: next);
   }
 
@@ -2287,10 +2304,10 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
                   onOpenLink: () {
                     final link = selected?.link;
                     if (link != null && link.trim().isNotEmpty) {
-                      _openExternalUrl(link.trim());
+                      openExternalUrl(link.trim());
                     }
                   },
-                  onOpenFile: (path) => _openFile(path),
+                  onOpenFile: (path) => openFile(path),
                 ),
               ),
             ],
@@ -3054,6 +3071,8 @@ class _InsertNewLineIntent extends Intent {
 ///  UTIL: open file / open url
 /// ============================
 
+
+// util functions live in platform_utils.dart
 String? _downloadsPath() {
   try {
     if (!Platform.isWindows) return null;
@@ -3105,6 +3124,7 @@ Future<void> _openExternalUrl(String url) async {
     }
   } catch (_) {}
 }
+ 
 
 /// ============================
 ///  LOGO (PINECONE)
@@ -3192,28 +3212,5 @@ Color? _parseHex(String hex) {
     return Color(v);
   } catch (_) {
     return null;
-  }
-}
-
-// helper for Matrix invert transform
-class Vector3 {
-  Vector3(this.x, this.y, this.z);
-  double x;
-  double y;
-  double z;
-}
-
-extension _Matrix on Matrix4 {
-  Vector3 transform3(Vector3 v) {
-    final r = transform(Vector3(v.x, v.y, v.z));
-    return r;
-  }
-
-  Vector3 transform(Vector3 v) {
-    final m = storage;
-    final x = m[0] * v.x + m[4] * v.y + m[8] * v.z + m[12];
-    final y = m[1] * v.x + m[5] * v.y + m[9] * v.z + m[13];
-    final z = m[2] * v.x + m[6] * v.y + m[10] * v.z + m[14];
-    return Vector3(x, y, z);
   }
 }
