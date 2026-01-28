@@ -11,6 +11,11 @@ import 'package:vector_math/vector_math_64.dart' as vmath;
 
 import 'platform_utils.dart';
 
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const PinealMapApp());
@@ -1034,12 +1039,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+
             tooltip: widget.controller.themeMode == ThemeMode.dark
                 ? 'Modo branco'
                 : 'Modo escuro',
             onPressed: widget.controller.toggleTheme,
             icon: Icon(widget.controller.themeMode == ThemeMode.dark
-                ? Icons.light_mode
+
+            tooltip: controller.themeMode == ThemeMode.dark
+                ? 'Modo branco'
+                : 'Modo escuro',
+            onPressed: controller.toggleTheme,
+            icon: Icon(controller.themeMode == ThemeMode.dark
+
+                       ? Icons.light_mode
                 : Icons.dark_mode),
           ),
           const SizedBox(width: 8),
@@ -1779,7 +1792,7 @@ class _TopToolbar extends StatelessWidget {
           icon: Icons.public,
           onPressed: () {
             // TODO: troque pela URL do seu site:
-            openExternalUrl('https://seu-site-aqui.com');
+            openExternalUrl('https://pxxon.com');
           },
         ),
       ];
@@ -1957,7 +1970,7 @@ class MindMapEditorPageState extends State<MindMapEditorPage> {
     final id = selectedNodeId;
     if (id == null) return;
 
-    final downloads = kIsWeb ? null : getDownloadsPath();
+    final downloads = _downloadsPath();
     try {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
@@ -3058,7 +3071,60 @@ class _InsertNewLineIntent extends Intent {
 ///  UTIL: open file / open url
 /// ============================
 
+
 // util functions live in platform_utils.dart
+String? _downloadsPath() {
+  try {
+    if (!Platform.isWindows) return null;
+    final user = Platform.environment['USERPROFILE'];
+    if (user == null) return null;
+    final downloads = '$user\\Downloads';
+    if (Directory(downloads).existsSync()) return downloads;
+  } catch (_) {}
+  return null;
+}
+
+Future<void> _openFile(String path) async {
+  try {
+    if (Platform.isWindows) {
+      // abre no app padrão
+      await Process.run('cmd', ['/c', 'start', '', path], runInShell: true);
+      return;
+    }
+    if (Platform.isMacOS) {
+      await Process.run('open', [path]);
+      return;
+    }
+    if (Platform.isLinux) {
+      await Process.run('xdg-open', [path]);
+      return;
+    }
+  } catch (_) {}
+}
+
+Future<void> _openExternalUrl(String url) async {
+  String u = url.trim();
+  if (u.isEmpty) return;
+  if (!u.startsWith('http://') && !u.startsWith('https://')) {
+    u = 'https://$u';
+  }
+
+  try {
+    if (Platform.isWindows) {
+      await Process.run('cmd', ['/c', 'start', '', u], runInShell: true);
+      return;
+    }
+    if (Platform.isMacOS) {
+      await Process.run('open', [u]);
+      return;
+    }
+    if (Platform.isLinux) {
+      await Process.run('xdg-open', [u]);
+      return;
+    }
+  } catch (_) {}
+}
+ 
 
 /// ============================
 ///  LOGO (PINECONE)
