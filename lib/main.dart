@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'library.dart';
-import 'screens/home_screen.dart';
+import 'screens/workspace_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,15 +50,18 @@ class _PinealMapAppState extends State<PinealMapApp>
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor:
-          b == Brightness.dark ? const Color(0xFF12131A) : const Color(0xFFF7F7FB),
+      scaffoldBackgroundColor: b == Brightness.dark
+          ? const Color(0xFF12131A)
+          : const Color(0xFFF7F7FB),
       appBarTheme: AppBarTheme(
         backgroundColor: b == Brightness.dark
             ? const Color(0xFF181A23)
             : Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      tooltipTheme: const TooltipThemeData(waitDuration: Duration(milliseconds: 500)),
+      tooltipTheme: const TooltipThemeData(
+        waitDuration: Duration(milliseconds: 500),
+      ),
     );
   }
 
@@ -73,7 +76,7 @@ class _PinealMapAppState extends State<PinealMapApp>
         theme: _theme(Brightness.light),
         darkTheme: _theme(Brightness.dark),
         home: library.isLoaded
-            ? HomeScreen(library: library)
+            ? WorkspaceScreen(library: library)
             : const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
     );

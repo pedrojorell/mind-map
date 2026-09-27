@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import 'editor_controller.dart';
 import 'io/file_io.dart';
-import 'library.dart';
 import 'models.dart';
 
 const kFileExtension = 'pmap';
@@ -14,12 +13,14 @@ const kFileExtension = 'pmap';
 void showSnack(BuildContext context, String msg) {
   ScaffoldMessenger.maybeOf(context)
     ?..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(msg),
-      behavior: SnackBarBehavior.floating,
-      width: 420,
-      duration: const Duration(seconds: 3),
-    ));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        width: 420,
+        duration: const Duration(seconds: 3),
+      ),
+    );
 }
 
 String safeFileName(String name) {
@@ -59,12 +60,16 @@ Future<({bool ok, String? path})> saveBytesAs({
 Uint8List encodeDoc(MindMapDoc doc) {
   final j = doc.toJson()..remove('filePath');
   return Uint8List.fromList(
-      utf8.encode(const JsonEncoder.withIndent('  ').convert(j)));
+    utf8.encode(const JsonEncoder.withIndent('  ').convert(j)),
+  );
 }
 
 /// Ctrl+S: grava no arquivo já associado ou pergunta onde salvar.
-Future<void> saveToFile(BuildContext context, EditorController editor,
-    {bool saveAs = false}) async {
+Future<void> saveToFile(
+  BuildContext context,
+  EditorController editor, {
+  bool saveAs = false,
+}) async {
   final doc = editor.doc;
   await editor.library.saveNow(doc);
   try {
@@ -85,39 +90,13 @@ Future<void> saveToFile(BuildContext context, EditorController editor,
     if (!r.ok) return;
     editor.markSavedToFile(r.path);
     if (context.mounted) {
-      showSnack(context,
-          r.path == null ? 'Arquivo baixado.' : 'Salvo em ${r.path}');
+      showSnack(
+        context,
+        r.path == null ? 'Arquivo baixado.' : 'Salvo em ${r.path}',
+      );
     }
   } catch (e) {
     if (context.mounted) showSnack(context, 'Erro ao salvar: $e');
-  }
-}
-
-/// Abre um arquivo .pmap (ou .json) e adiciona à biblioteca.
-Future<MindMapDoc?> openFromFile(BuildContext context, Library library) async {
-  try {
-    final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Abrir mapa mental',
-      type: FileType.custom,
-      allowedExtensions: const [kFileExtension, 'json'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return null;
-    final f = result.files.single;
-    List<int>? bytes = f.bytes;
-    String? path;
-    if (canUseFilePaths) path = f.path;
-    if (bytes == null && path != null) bytes = await readBytes(path);
-    if (bytes == null) throw const FormatException('Arquivo vazio.');
-    final json = jsonDecode(utf8.decode(bytes));
-    if (json is! Map<String, dynamic>) {
-      throw const FormatException('Não é um arquivo do PinealMap.');
-    }
-    final doc = MindMapDoc.fromJson(json)..filePath = path;
-    return library.importDoc(doc);
-  } catch (e) {
-    if (context.mounted) showSnack(context, 'Não foi possível abrir: $e');
-    return null;
   }
 }
 
@@ -127,8 +106,11 @@ String toMarkdown(MindMapDoc doc) {
   void walk(String id, int depth) {
     final n = doc.nodes[id]!;
     final text = n.text.replaceAll('\n', ' ');
-    final label = n.hasLink ? '[$text](${n.link})' : text;
+    final label = n.hasLink ? '[$text](${n.links.first.resolved})' : text;
     b.writeln('${'  ' * depth}- $label');
+    for (final l in n.links.skip(1)) {
+      b.writeln('${'  ' * (depth + 1)}- [${l.label}](${l.resolved})');
+    }
     if (n.note.trim().isNotEmpty) {
       for (final line in n.note.trim().split('\n')) {
         b.writeln('${'  ' * (depth + 1)}> $line');
@@ -154,24 +136,11 @@ String toMarkdown(MindMapDoc doc) {
   return b.toString();
 }
 
-Future<void> exportMarkdown(BuildContext context, MindMapDoc doc) async {
-  try {
-    final r = await saveBytesAs(
-      fileName: doc.name,
-      ext: 'md',
-      bytes: Uint8List.fromList(utf8.encode(toMarkdown(doc))),
-      dialogTitle: 'Exportar como Markdown',
-    );
-    if (r.ok && context.mounted) {
-      showSnack(context, r.path == null ? 'Markdown baixado.' : 'Exportado: ${r.path}');
-    }
-  } catch (e) {
-    if (context.mounted) showSnack(context, 'Erro ao exportar: $e');
-  }
-}
-
 Future<void> exportPng(
-    BuildContext context, MindMapDoc doc, Future<Uint8List?> Function() capture) async {
+  BuildContext context,
+  MindMapDoc doc,
+  Future<Uint8List?> Function() capture,
+) async {
   try {
     final bytes = await capture();
     if (bytes == null) throw StateError('falha ao gerar imagem');
@@ -182,7 +151,10 @@ Future<void> exportPng(
       dialogTitle: 'Exportar imagem PNG',
     );
     if (r.ok && context.mounted) {
-      showSnack(context, r.path == null ? 'Imagem baixada.' : 'Exportado: ${r.path}');
+      showSnack(
+        context,
+        r.path == null ? 'Imagem baixada.' : 'Exportado: ${r.path}',
+      );
     }
   } catch (e) {
     if (context.mounted) showSnack(context, 'Erro ao exportar: $e');

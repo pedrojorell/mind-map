@@ -11,7 +11,7 @@ import 'models.dart';
 /// (desfazer/refazer) e todas as operações sobre os nós.
 class EditorController extends ChangeNotifier {
   EditorController({required this.library, required this.doc})
-      : selectedId = doc.rootId {
+    : selectedId = doc.rootId {
     _lastFileJson = doc.filePath == null ? null : _fileJson();
   }
 
@@ -28,6 +28,18 @@ class EditorController extends ChangeNotifier {
 
   /// Texto inicial ao começar a editar digitando direto (substitui o atual).
   String? editingInitialText;
+
+  /// Origem de uma relação sendo criada (aguardando o clique no destino).
+  String? linkingFrom;
+
+  /// Outros tópicos selecionados além de [selectedId] (Ctrl/Shift + clique).
+  final Set<String> multi = {};
+
+  /// Modo foco: mostra apenas este tópico e seus descendentes.
+  String? focusId;
+
+  /// Estilo copiado pelo pincel de formato.
+  Map<String, dynamic>? copiedStyle;
 
   /// Tamanhos medidos na tela (não são salvos).
   final Map<String, Size> sizes = {};
@@ -86,12 +98,31 @@ class EditorController extends ChangeNotifier {
       ..connectorStyle = r.connectorStyle
       ..connectorWidth = r.connectorWidth
       ..autoLayout = r.autoLayout
+      ..layout = r.layout
+      ..hGap = r.hGap
+      ..vGap = r.vGap
+      ..themeId = r.themeId
+      ..background = r.background
+      ..relations = r.relations
+      ..numbering = r.numbering
       ..touch();
     if (selectedId != null && !doc.nodes.containsKey(selectedId)) {
       selectedId = doc.rootId;
     }
+    multi.removeWhere((m) => !doc.nodes.containsKey(m));
+    if (focusId != null && !doc.nodes.containsKey(focusId)) focusId = null;
     editingId = null;
+    linkingFrom = null;
     _changed();
+  }
+
+  /// Volta o mapa para uma versão salva (pode ser desfeito com Ctrl+Z).
+  void restoreVersion(String json) {
+    _pushUndo(_snapshot());
+    final r = MindMapDoc.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    r.filePath = doc.filePath;
+    r.id = doc.id;
+    _restore(jsonEncode(r.toJson()));
   }
 
   void undo() {
@@ -124,20 +155,46 @@ class EditorController extends ChangeNotifier {
 
   /// Reorganiza depois do próximo quadro (quando os tamanhos já foram medidos).
   void requestLayout({bool force = false}) {
-    if (!doc.autoLayout && !force) return;
+    if (!doc.autoLayout && !force) {
+      _requestUnstack();
+      return;
+    }
     if (_layoutScheduled) return;
     _layoutScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _layoutScheduled = false;
       if (_disposed) return;
-      autoLayout(doc, sizes);
+      _arrange();
       _changed();
     });
     SchedulerBinding.instance.scheduleFrame();
   }
 
+  /// Organiza a árvore e afasta tópicos flutuantes que ficaram por cima.
+  void _arrange() {
+    autoLayout(doc, sizes);
+    resolveOverlaps(doc, sizes, onlyFloating: true, anchorId: editingId);
+  }
+
+  bool _unstackScheduled = false;
+
+  /// Com a posição livre, afasta tópicos que ficaram um sobre o outro
+  /// (por exemplo, quando um tópico cresce enquanto o texto é digitado).
+  void _requestUnstack() {
+    if (_unstackScheduled) return;
+    _unstackScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _unstackScheduled = false;
+      if (_disposed || _dragSnapshot != null) return;
+      if (resolveOverlaps(doc, sizes, anchorId: editingId ?? selectedId)) {
+        _changed();
+      }
+    });
+    SchedulerBinding.instance.scheduleFrame();
+  }
+
   void arrangeNow() {
-    mutate(() => autoLayout(doc, sizes));
+    mutate(_arrange);
   }
 
   void setAutoLayout(bool on) {
@@ -155,14 +212,68 @@ class EditorController extends ChangeNotifier {
     sizes[id] = size;
     if (doc.autoLayout) {
       requestLayout();
-    } else if (old == null) {
-      notifyListeners();
+    } else {
+      _requestUnstack();
+      if (old == null) notifyListeners();
     }
   }
 
   // ---------------------------------------------------------------- seleção
 
+  bool isSelected(String id) => selectedId == id || multi.contains(id);
+
+  /// Todos os tópicos selecionados (o principal primeiro).
+  List<String> get selection => [
+    ?selectedId,
+    ...multi.where((m) => m != selectedId),
+  ];
+
+  void toggleMultiSelect(String id) {
+    if (selectedId == null) {
+      select(id);
+      return;
+    }
+    if (id == selectedId) {
+      if (multi.isEmpty) return;
+      selectedId = multi.first;
+      multi.remove(selectedId);
+    } else if (!multi.remove(id)) {
+      multi.add(id);
+    }
+    editingId = null;
+    notifyListeners();
+  }
+
+  void selectAll() {
+    selectedId ??= doc.rootId;
+    multi
+      ..clear()
+      ..addAll(visibleNodes().map((n) => n.id).where((i) => i != selectedId));
+    notifyListeners();
+  }
+
+  /// Nós visíveis, respeitando os ramos recolhidos e o modo foco.
+  Iterable<MindMapNode> visibleNodes() {
+    final f = focusId;
+    if (f == null || !doc.nodes.containsKey(f)) return doc.visibleNodes();
+    final keep = doc.subtreeIds(f).toSet();
+    return doc.visibleNodes().where((n) => keep.contains(n.id));
+  }
+
+  void setFocus(String? id) {
+    focusId = id;
+    if (id != null) select(id);
+    notifyListeners();
+  }
+
   void select(String? id) {
+    if (multi.isNotEmpty) {
+      multi.clear();
+      if (selectedId == id) {
+        notifyListeners();
+        return;
+      }
+    }
     if (selectedId == id) return;
     if (editingId != null && editingId != id) editingId = null;
     selectedId = id;
@@ -179,8 +290,11 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void commitEditing(String text) {
+  /// Grava o texto editado. Com [forId], só grava se esse ainda for o tópico
+  /// em edição (evita gravar no tópico errado quando o foco muda).
+  void commitEditing(String text, [String? forId]) {
     final id = editingId;
+    if (forId != null && id != forId) return;
     editingId = null;
     if (id == null) return;
     final n = doc.nodes[id];
@@ -239,9 +353,13 @@ class EditorController extends ChangeNotifier {
   MindMapNode _newChildOf(MindMapNode parent, {String? text}) {
     final isRootChild = parent.id == doc.rootId;
     final idx = parent.childrenIds.length;
-    final color = isRootChild ? autoColor(idx) : parent.color;
+    final color = isRootChild ? doc.branchColor(idx) : parent.color;
     final side = parent.id == doc.rootId
-        ? (idx.isEven ? 1 : -1)
+        ? switch (doc.layout) {
+            'right' => 1,
+            'left' => -1,
+            _ => idx.isEven ? 1 : -1,
+          }
         : sideOf(doc, parent);
     final pSize = sizes[parent.id] ?? estimateNodeSize(parent);
     var y = parent.pos.dy;
@@ -250,8 +368,7 @@ class EditorController extends ChangeNotifier {
           .map((c) => doc.nodes[c]!)
           .where((c) => sideOf(doc, c) == side);
       if (sameSide.isNotEmpty) {
-        y = sameSide.map((c) => c.pos.dy).reduce((a, b) => a > b ? a : b) +
-            56;
+        y = sameSide.map((c) => c.pos.dy).reduce((a, b) => a > b ? a : b) + 56;
       }
     }
     final n = MindMapNode(
@@ -264,20 +381,29 @@ class EditorController extends ChangeNotifier {
     );
     final size = estimateNodeSize(n);
     n.pos = Offset(
-        parent.pos.dx + side * (pSize.width / 2 + kHGap + size.width / 2), y);
+      parent.pos.dx + side * (pSize.width / 2 + doc.hGap + size.width / 2),
+      y,
+    );
     return n;
   }
 
-  String? addChild([String? parentId]) {
+  String? addChild([String? parentId]) => addChildWith(parentId);
+
+  /// Novo subtópico; com [edit] falso não entra em modo de edição.
+  String? addChildWith(String? parentId, {String? text, bool edit = true}) {
     final parent = doc.nodes[parentId ?? selectedId ?? doc.rootId];
     if (parent == null) return null;
-    final n = _newChildOf(parent);
+    final n = _newChildOf(parent, text: text);
     mutate(() {
       parent.collapsed = false;
       doc.nodes[n.id] = n;
       parent.childrenIds.add(n.id);
     }, relayout: true);
-    startEditing(n.id, true);
+    if (edit) {
+      startEditing(n.id, true);
+    } else {
+      select(n.id);
+    }
     return n.id;
   }
 
@@ -299,17 +425,81 @@ class EditorController extends ChangeNotifier {
     return n.id;
   }
 
-  String addFloating(Offset scenePos) {
+  /// Novo tópico irmão logo antes do selecionado.
+  String? addSiblingBefore() {
+    final cur = selected;
+    if (cur == null || cur.parentId == null) return addChild(cur?.id);
+    final parent = doc.nodes[cur.parentId]!;
+    final n = _newChildOf(parent);
+    n.color = cur.color;
+    n.shape = cur.shape;
+    n.fontSize = cur.fontSize;
+    n.pos = Offset(cur.pos.dx, cur.pos.dy - 56);
+    mutate(() {
+      doc.nodes[n.id] = n;
+      final i = parent.childrenIds.indexOf(cur.id);
+      parent.childrenIds.insert(i, n.id);
+    }, relayout: true);
+    startEditing(n.id, true);
+    return n.id;
+  }
+
+  /// Novo ramo principal (filho direto da ideia principal).
+  String? addMainTopic() => addChild(doc.rootId);
+
+  /// Cria vários tópicos de uma vez sob [parentId] (uma linha por tópico,
+  /// recuo cria subtópicos).
+  bool addMultiple(String text, [String? parentId]) {
+    if (parentId != null) select(parentId);
+    return pasteOutline(text);
+  }
+
+  String addFloating(
+    Offset scenePos, {
+    String text = 'Tópico flutuante',
+    bool edit = true,
+  }) {
     final n = MindMapNode(
       id: newId(),
-      text: 'Tópico flutuante',
+      text: text,
       pos: scenePos,
       color: '#00B8D4',
       shape: 'rounded',
     );
     mutate(() => doc.nodes[n.id] = n);
-    startEditing(n.id, true);
+    if (edit) {
+      startEditing(n.id, true);
+    } else {
+      select(n.id);
+    }
     return n.id;
+  }
+
+  /// Exclui todos os tópicos selecionados.
+  void deleteSelection() {
+    final ids = selection.where((i) => i != doc.rootId).toList();
+    if (ids.length <= 1) {
+      deleteNode();
+      return;
+    }
+    mutate(() {
+      for (final id in ids) {
+        final n = doc.nodes[id];
+        if (n == null) continue;
+        doc.nodes[n.parentId]?.childrenIds.remove(id);
+        final removed = doc.subtreeIds(id).toSet();
+        for (final r in removed) {
+          doc.nodes.remove(r);
+          sizes.remove(r);
+        }
+        doc.relations.removeWhere(
+          (r) => removed.contains(r.from) || removed.contains(r.to),
+        );
+      }
+      multi.clear();
+      selectedId = doc.rootId;
+      editingId = null;
+    }, relayout: true);
   }
 
   void deleteNode([String? id]) {
@@ -329,20 +519,109 @@ class EditorController extends ChangeNotifier {
     }
     mutate(() {
       parent?.childrenIds.remove(target);
-      for (final id in doc.subtreeIds(target)) {
+      final removed = doc.subtreeIds(target).toSet();
+      for (final id in removed) {
         doc.nodes.remove(id);
         sizes.remove(id);
       }
+      doc.relations.removeWhere(
+        (r) => removed.contains(r.from) || removed.contains(r.to),
+      );
       selectedId = next;
       editingId = null;
     }, relayout: true);
   }
 
-  void updateNode(String id, void Function(MindMapNode n) fn,
-      {bool relayout = false}) {
+  /// Altera um tópico. Se ele for o principal de uma seleção múltipla, a
+  /// alteração vale para todos os tópicos selecionados.
+  void updateNode(
+    String id,
+    void Function(MindMapNode n) fn, {
+    bool relayout = false,
+  }) {
     final n = doc.nodes[id];
     if (n == null) return;
-    mutate(() => fn(n), relayout: relayout);
+    final targets = id == selectedId && multi.isNotEmpty
+        ? selection.map((i) => doc.nodes[i]).whereType<MindMapNode>().toList()
+        : [n];
+    mutate(() {
+      for (final t in targets) {
+        fn(t);
+      }
+    }, relayout: relayout);
+  }
+
+  // ------------------------------------------------------ pincel de formato
+
+  static const _styleKeys = [
+    'color',
+    'fillColor',
+    'textColor',
+    'shape',
+    'fontSize',
+    'bold',
+    'italic',
+    'borderWidth',
+    'dashed',
+    'underline',
+    'strike',
+    'align',
+  ];
+
+  void copyStyle([String? id]) {
+    final n = doc.nodes[id ?? selectedId ?? ''];
+    if (n == null) return;
+    final j = n.toJson();
+    copiedStyle = {for (final k in _styleKeys) k: j[k]};
+    notifyListeners();
+  }
+
+  /// Aplica o estilo copiado ao tópico (ou à seleção inteira).
+  void pasteStyle([String? id]) {
+    final st = copiedStyle;
+    final target = id ?? selectedId;
+    if (st == null || target == null) return;
+    updateNode(target, (n) {
+      n
+        ..color = (st['color'] as String?) ?? n.color
+        ..fillColor = st['fillColor'] as String?
+        ..textColor = st['textColor'] as String?
+        ..shape = (st['shape'] as String?) ?? n.shape
+        ..fontSize = ((st['fontSize'] as num?) ?? n.fontSize).toDouble()
+        ..bold = (st['bold'] as bool?) ?? false
+        ..italic = (st['italic'] as bool?) ?? false
+        ..borderWidth = ((st['borderWidth'] as num?) ?? n.borderWidth)
+            .toDouble()
+        ..dashed = (st['dashed'] as bool?) ?? false
+        ..underline = (st['underline'] as bool?) ?? false
+        ..strike = (st['strike'] as bool?) ?? false
+        ..align = (st['align'] as String?) ?? 'center';
+    }, relayout: true);
+  }
+
+  // --------------------------------------------------- localizar e substituir
+
+  /// Substitui [find] por [replacement] no texto (e nas anotações, se
+  /// [notes]). Retorna quantos tópicos mudaram.
+  int replaceAll(
+    String find,
+    String replacement, {
+    bool notes = false,
+    bool caseSensitive = false,
+  }) {
+    if (find.isEmpty) return 0;
+    final re = RegExp(RegExp.escape(find), caseSensitive: caseSensitive);
+    final hits = doc.nodes.values
+        .where((n) => re.hasMatch(n.text) || (notes && re.hasMatch(n.note)))
+        .toList();
+    if (hits.isEmpty) return 0;
+    mutate(() {
+      for (final n in hits) {
+        n.text = n.text.replaceAll(re, replacement);
+        if (notes) n.note = n.note.replaceAll(re, replacement);
+      }
+    }, relayout: true);
+    return hits.length;
   }
 
   /// Aplica o mesmo estilo a um nó e (opcionalmente) a toda a sua subárvore.
@@ -387,14 +666,16 @@ class EditorController extends ChangeNotifier {
       np.childrenIds.add(id);
       np.collapsed = false;
       if (newParentId == doc.rootId) {
-        n.color = autoColor(np.childrenIds.length - 1);
+        n.color = doc.branchColor(np.childrenIds.length - 1);
       }
       final side = newParentId == doc.rootId ? 1 : sideOf(doc, np);
       final ps = sizes[np.id] ?? estimateNodeSize(np);
       final ns = sizes[id] ?? estimateNodeSize(n);
-      final delta = Offset(
-              np.pos.dx + side * (ps.width / 2 + kHGap + ns.width / 2),
-              np.pos.dy + 40) -
+      final delta =
+          Offset(
+            np.pos.dx + side * (ps.width / 2 + doc.hGap + ns.width / 2),
+            np.pos.dy + 40,
+          ) -
           n.pos;
       for (final c in doc.subtreeIds(id)) {
         doc.nodes[c]!.pos += delta;
@@ -451,7 +732,10 @@ class EditorController extends ChangeNotifier {
       if (doc.isInSubtree(other.id, id)) continue;
       final s = sizes[other.id] ?? estimateNodeSize(other);
       final rect = Rect.fromCenter(
-          center: other.pos, width: s.width, height: s.height);
+        center: other.pos,
+        width: s.width,
+        height: s.height,
+      );
       if (rect.contains(n.pos)) return other.id;
     }
     return null;
@@ -476,6 +760,8 @@ class EditorController extends ChangeNotifier {
       doc.autoLayout = false;
       turnedOff = true;
     }
+    // O tópico solto fica onde o usuário deixou; os vizinhos abrem espaço.
+    resolveOverlaps(doc, sizes, anchorId: id);
     doc.touch();
     _changed();
     return turnedOff;
@@ -529,7 +815,8 @@ class EditorController extends ChangeNotifier {
 
   String _build(Map<String, dynamic> tree, MindMapNode parent, Offset? delta) {
     final src = MindMapNode.fromJson(
-        Map<String, dynamic>.from(tree['node'] as Map));
+      Map<String, dynamic>.from(tree['node'] as Map),
+    );
     final oldPos = src.pos;
     src
       ..id = newId()
@@ -583,6 +870,135 @@ class EditorController extends ChangeNotifier {
     return true;
   }
 
+  // ---------------------------------------------------- marcadores e adesivos
+
+  /// Coloca o marcador no tópico; se ele já estiver lá, remove.
+  void toggleMarker(String group, String value, [String? id]) {
+    final n = doc.nodes[id ?? selectedId ?? ''];
+    if (n == null) return;
+    final current = n.marker(group);
+    mutate(
+      () => n.setMarker(group, current == value ? null : value),
+      relayout: true,
+    );
+  }
+
+  void clearMarkers([String? id]) {
+    final n = doc.nodes[id ?? selectedId ?? ''];
+    if (n == null || n.markers.isEmpty) return;
+    mutate(() => n.markers.clear(), relayout: true);
+  }
+
+  void setSticker(String? emoji, [String? id]) {
+    final n = doc.nodes[id ?? selectedId ?? ''];
+    if (n == null || n.sticker == emoji) return;
+    mutate(() => n.sticker = emoji, relayout: true);
+  }
+
+  // --------------------------------------------------------------- relações
+
+  /// Começa a criar uma relação a partir do tópico selecionado.
+  void startRelation([String? from]) {
+    final id = from ?? selectedId;
+    if (id == null) return;
+    linkingFrom = id;
+    editingId = null;
+    notifyListeners();
+  }
+
+  void cancelRelation() {
+    if (linkingFrom == null) return;
+    linkingFrom = null;
+    notifyListeners();
+  }
+
+  /// Termina a relação iniciada em [startRelation] no tópico [to].
+  bool completeRelation(String to) {
+    final from = linkingFrom;
+    linkingFrom = null;
+    if (from == null || from == to || !doc.nodes.containsKey(to)) {
+      notifyListeners();
+      return false;
+    }
+    final exists = doc.relations.any(
+      (r) => (r.from == from && r.to == to) || (r.from == to && r.to == from),
+    );
+    if (exists) {
+      notifyListeners();
+      return false;
+    }
+    mutate(
+      () => doc.relations.add(NodeRelation(id: newId(), from: from, to: to)),
+    );
+    return true;
+  }
+
+  List<NodeRelation> relationsOf(String id) =>
+      doc.relations.where((r) => r.from == id || r.to == id).toList();
+
+  void updateRelation(String relId, void Function(NodeRelation r) fn) {
+    final r = doc.relations.where((r) => r.id == relId).firstOrNull;
+    if (r == null) return;
+    mutate(() => fn(r));
+  }
+
+  void removeRelation(String relId) {
+    mutate(() => doc.relations.removeWhere((r) => r.id == relId));
+  }
+
+  // ------------------------------------------------------------ aparência
+
+  void setLayout(String layout) {
+    mutate(() {
+      doc.layout = layout;
+      doc.autoLayout = true;
+      _arrange();
+    });
+  }
+
+  void setSpacing({double? h, double? v}) {
+    mutate(() {
+      if (h != null) doc.hGap = h;
+      if (v != null) doc.vGap = v;
+      if (doc.autoLayout) _arrange();
+    });
+  }
+
+  /// Aplica um tema: recolore a ideia principal e os ramos com a paleta.
+  void applyTheme(String themeId) {
+    final t = themeById(themeId);
+    mutate(() {
+      doc.themeId = t.id;
+      doc.background = t.background;
+      final root = doc.root;
+      root
+        ..color = t.rootFill
+        ..fillColor = t.rootFill
+        ..textColor = t.rootText;
+      for (var i = 0; i < root.childrenIds.length; i++) {
+        final color = t.palette[i % t.palette.length];
+        for (final id in doc.subtreeIds(root.childrenIds[i])) {
+          final n = doc.nodes[id]!;
+          n.color = color;
+          // Preenchimentos com a cor antiga do ramo acompanham o novo tema.
+          if (n.fillColor != null &&
+              n.fillColor != '#FFFFFF' &&
+              n.fillColor != '#1F2333') {
+            n.fillColor = color;
+          }
+        }
+      }
+    });
+  }
+
+  void setNumbering(bool on) {
+    mutate(() => doc.numbering = on, relayout: true);
+  }
+
+  void setBackground(String? hex) {
+    mutate(() => doc.background = hex);
+  }
+
   // ---------------------------------------------------------- documento
 
   void setConnector({String? style, double? width}) {
@@ -602,10 +1018,37 @@ class EditorController extends ChangeNotifier {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
     return doc.nodes.values
-        .where((n) =>
-            n.text.toLowerCase().contains(q) ||
-            n.note.toLowerCase().contains(q))
+        .where(
+          (n) =>
+              n.text.toLowerCase().contains(q) ||
+              n.note.toLowerCase().contains(q) ||
+              n.tags.any((t) => t.toLowerCase().contains(q)) ||
+              n.links.any((l) => l.label.toLowerCase().contains(q)) ||
+              n.comments.any((c) => c.text.toLowerCase().contains(q)) ||
+              n.callouts.any((c) => c.toLowerCase().contains(q)) ||
+              (n.task?.assignee.toLowerCase().contains(q) ?? false),
+        )
         .toList();
+  }
+
+  /// Ordem de leitura do mapa (raiz, depois os ramos em profundidade).
+  List<String> readingOrder({bool visibleOnly = true}) {
+    final out = <String>[];
+    void walk(String id) {
+      final n = doc.nodes[id];
+      if (n == null) return;
+      out.add(id);
+      if (visibleOnly && n.collapsed) return;
+      for (final c in n.childrenIds) {
+        walk(c);
+      }
+    }
+
+    walk(doc.rootId);
+    for (final n in doc.nodes.values) {
+      if (n.parentId == null && n.id != doc.rootId) walk(n.id);
+    }
+    return out;
   }
 
   /// Garante que o nó esteja visível (expande os ancestrais recolhidos).

@@ -16,7 +16,9 @@ class MeasureSize extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(
-      BuildContext context, covariant RenderMeasureSize renderObject) {
+    BuildContext context,
+    covariant RenderMeasureSize renderObject,
+  ) {
     renderObject.onChange = onChange;
   }
 }
