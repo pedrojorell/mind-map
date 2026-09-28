@@ -47,5 +47,6 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Configurações locais do Claude Code
-.claude/
+# Configurações locais do Claude Code (as skills do projeto vão para o Git)
+.claude/*
+!.claude/skills/

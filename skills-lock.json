@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "skills": {
+    "dart-add-unit-test": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/dart-add-unit-test/SKILL.md",
+      "computedHash": "e5310cd56656f9db8533a612d69e201ee3644dc25f4b10e9ab38d0809440eeb2"
+    },
+    "dart-collect-coverage": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/dart-collect-coverage/SKILL.md",
+      "computedHash": "abaf27c3fe7370e4daaea2c48f6efd8cc418042e2844649a9c2979bbfde8b7b1"
+    },
+    "dart-generate-test-mocks": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/dart-generate-test-mocks/SKILL.md",
+      "computedHash": "c5132b41dd1d00949d035f6d49fcaee79e95d056eb9652d465e7349f539d16a2"
+    },
+    "dart-resolve-package-conflicts": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/dart-resolve-package-conflicts/SKILL.md",
+      "computedHash": "4f8029de67b9b2da43eea381c6a320a0da8844d927781effcce6e07ac736dffd"
+    },
+    "dart-run-static-analysis": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/dart-run-static-analysis/SKILL.md",
+      "computedHash": "7b143ff93bfb118ce9d72fca56cef4b38d75bfe9044367101db09cf32e6815ad"
+    },
+    "dart-use-path-package": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/dart-use-path-package/SKILL.md",
+      "computedHash": "a533ab92dc3308c205427b787f5bbcf847831a068a60340b8229745690d11bab"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
+    "flutter-add-integration-test": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-add-integration-test/SKILL.md",
+      "computedHash": "4246d3ef5f21bdb7945899056b99cf3863e2bff645a132b41634caaded68da6d"
+    },
+    "flutter-add-widget-test": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-add-widget-test/SKILL.md",
+      "computedHash": "f4ea905ae155d1bca76f5431bf6ed31f31e3d40146493e7ae4285eac39ba4ffd"
+    },
+    "flutter-apply-architecture-best-practices": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-apply-architecture-best-practices/SKILL.md",
+      "computedHash": "baeb208b1cab90c559677626dbd101b96ba93f803cbed85122abdadeb3283a8b"
+    },
+    "flutter-build-responsive-layout": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-build-responsive-layout/SKILL.md",
+      "computedHash": "6d74a9504c4e355c4c62f6fcb6c6dc0df67b56dd6616bea199e4e58f75b7729b"
+    },
+    "flutter-fix-layout-issues": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-fix-layout-issues/SKILL.md",
+      "computedHash": "b2f9789451224e6df8d1d7ac63854c2f1beb30fa35d13ea06fbae9ba2b1b0a7f"
+    },
+    "flutter-implement-json-serialization": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-implement-json-serialization/SKILL.md",
+      "computedHash": "c2cf46854472a452dafa11f862f2bca3d9fe7286a5bb45d85b1efbcebc74b74e"
+    },
+    "flutter-use-http-package": {
+      "source": "flutter/agent-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/flutter-use-http-package/SKILL.md",
+      "computedHash": "bd169b5cee731751f3b32f43c94cfe9495fc8e6c3eb621b785c69e38b77d0e19"
+    }
+  }
+}
