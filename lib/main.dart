@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 
+import 'io/file_io.dart';
 import 'library.dart';
+import 'widgets/brand.dart';
 import 'screens/workspace_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const PinealMapApp());
+  // Traz os mapas salvos quando o app ainda se chamava PinealMap.
+  await migrateLegacyStorage();
+  runApp(const MapLongApp());
 }
 
-class PinealMapApp extends StatefulWidget {
-  const PinealMapApp({super.key, this.library});
+class MapLongApp extends StatefulWidget {
+  const MapLongApp({super.key, this.library});
 
   /// Permite injetar uma biblioteca (usado nos testes).
   final Library? library;
 
   @override
-  State<PinealMapApp> createState() => _PinealMapAppState();
+  State<MapLongApp> createState() => _MapLongAppState();
 }
 
-class _PinealMapAppState extends State<PinealMapApp>
-    with WidgetsBindingObserver {
+class _MapLongAppState extends State<MapLongApp> with WidgetsBindingObserver {
   late final Library library = widget.library ?? Library();
 
   @override
@@ -43,10 +46,7 @@ class _PinealMapAppState extends State<PinealMapApp>
   }
 
   ThemeData _theme(Brightness b) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF7C4DFF),
-      brightness: b,
-    );
+    final scheme = ColorScheme.fromSeed(seedColor: kBrandSeed, brightness: b);
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -71,7 +71,7 @@ class _PinealMapAppState extends State<PinealMapApp>
       listenable: library,
       builder: (context, _) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'PinealMap',
+        title: 'MapLong',
         themeMode: library.themeMode,
         theme: _theme(Brightness.light),
         darkTheme: _theme(Brightness.dark),

@@ -148,7 +148,7 @@ class MapTheme {
 }
 
 const kThemes = <MapTheme>[
-  MapTheme('pineal', 'Pineal', kPalette, rootFill: '#7C4DFF'),
+  MapTheme('pineal', 'MapLong', kPalette, rootFill: '#3B4CF5'),
   MapTheme('grafite', 'Grafite', [
     '#5B8DEF',
     '#7AC7A8',
@@ -1049,7 +1049,7 @@ class MindMapDoc {
   /// Reorganiza o mapa automaticamente após mudanças na estrutura.
   bool autoLayout;
 
-  /// Caminho do arquivo .pmap no disco (apenas desktop), se foi salvo/aberto.
+  /// Caminho do arquivo .maplong no disco (apenas desktop), se foi salvo/aberto.
   String? filePath;
 
   /// Estrutura do mapa (ver [kLayouts]).
@@ -1155,8 +1155,8 @@ class MindMapDoc {
     final root = MindMapNode(
       id: newId(),
       text: 'Ideia Principal',
-      color: '#7C4DFF',
-      fillColor: '#7C4DFF',
+      color: '#3B4CF5',
+      fillColor: '#3B4CF5',
       textColor: '#FFFFFF',
       fontSize: 22,
       bold: true,
@@ -1187,7 +1187,7 @@ class MindMapDoc {
   }
 
   Map<String, dynamic> toJson() => {
-    'format': 'pinealmap',
+    'format': 'maplong',
     'version': formatVersion,
     'id': id,
     'name': name,

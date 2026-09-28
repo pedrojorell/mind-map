@@ -6,6 +6,7 @@ import '../library.dart';
 import '../models.dart';
 import '../templates.dart';
 import 'editor_screen.dart';
+import '../widgets/brand.dart';
 import 'home_screen.dart';
 
 /// Janela principal com abas, como num navegador: a aba "Início" e uma aba
@@ -185,7 +186,7 @@ class _TabStrip extends StatelessWidget {
               const SizedBox(width: 6),
               _Tab(
                 selected: active == -1,
-                icon: const PinealLogo(size: 16),
+                icon: const MapLongMark(height: 14),
                 label: 'Início',
                 onTap: () => onSelect(-1),
                 width: 110,

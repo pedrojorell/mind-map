@@ -8,7 +8,10 @@ import 'editor_controller.dart';
 import 'io/file_io.dart';
 import 'models.dart';
 
-const kFileExtension = 'pmap';
+/// Extensão dos arquivos do MapLong. Arquivos `.pmap` (nome antigo) também
+/// são aceitos ao abrir.
+const kFileExtension = 'maplong';
+const kLegacyFileExtension = 'pmap';
 
 void showSnack(BuildContext context, String msg) {
   ScaffoldMessenger.maybeOf(context)

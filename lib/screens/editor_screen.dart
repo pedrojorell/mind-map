@@ -16,7 +16,7 @@ import '../widgets/mind_map_canvas.dart';
 import '../widgets/outline_view.dart';
 import '../widgets/properties_panel.dart';
 import '../widgets/ribbon.dart';
-import 'home_screen.dart' show PinealLogo;
+import '../widgets/brand.dart';
 
 enum _RibbonTab { home, insert, design, view }
 
@@ -1282,7 +1282,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 onPressed:
                     widget.onHome ?? () => Navigator.of(context).maybePop(),
               ),
-              const PinealLogo(size: 22),
+              const MapLongMark(height: 20),
               const SizedBox(width: 8),
               Flexible(
                 child: InkWell(
@@ -1435,7 +1435,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       shift: true,
                     ),
                     onPressed: () => _save(saveAs: true),
-                    child: const Text('Arquivo PinealMap (.pmap)'),
+                    child: const Text('Arquivo MapLong (.maplong)'),
                   ),
                   MenuItemButton(
                     leadingIcon: const Icon(Icons.content_copy),
@@ -2531,7 +2531,7 @@ void showShortcutsDialog(BuildContext context) {
     ('Ctrl+L', 'Organizar mapa'),
     ('Ctrl+0', 'Ajustar à tela'),
     ('Ctrl+F', 'Localizar'),
-    ('Ctrl+S', 'Salvar arquivo .pmap'),
+    ('Ctrl+S', 'Salvar arquivo .maplong'),
     ('Ctrl+E', 'Exportar PNG'),
     ('2 cliques', 'Editar nome e informações do tópico'),
     ('3 cliques', 'Criar tópico conectado'),

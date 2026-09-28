@@ -52,7 +52,7 @@ class EditorController extends ChangeNotifier {
   bool _layoutScheduled = false;
   bool _disposed = false;
 
-  /// JSON salvo por último no arquivo .pmap (para saber se há alterações).
+  /// JSON salvo por último no arquivo .maplong (para saber se há alterações).
   String? _lastFileJson;
 
   bool get canUndo => _undo.isNotEmpty;
@@ -61,7 +61,7 @@ class EditorController extends ChangeNotifier {
   MindMapNode? get selected =>
       selectedId == null ? null : doc.nodes[selectedId!];
 
-  /// Há alterações ainda não gravadas no arquivo .pmap?
+  /// Há alterações ainda não gravadas no arquivo .maplong?
   bool get hasUnsavedFileChanges =>
       doc.filePath != null && _lastFileJson != _fileJson();
 

@@ -9,6 +9,7 @@ import '../layout.dart';
 import '../library.dart';
 import '../models.dart';
 import '../templates.dart';
+import '../widgets/brand.dart';
 import 'editor_screen.dart';
 
 enum _Section { home, maps, favorites, templates, trash }
@@ -151,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Excluir definitivamente?'),
         content: Text(
-          '“${d.name}” será apagado para sempre. Arquivos .pmap salvos no disco não são apagados.',
+          '“${d.name}” será apagado para sempre. Arquivos .maplong salvos no disco não são apagados.',
         ),
         actions: [
           TextButton(
@@ -359,16 +360,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? MainAxisAlignment.center
                   : MainAxisAlignment.start,
               children: [
-                const PinealLogo(size: 30),
-                if (!compact) ...[
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      'PinealMap',
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                if (compact)
+                  const MapLongMark(height: 26)
+                else ...[
+                  const MapLongSymbol(height: 32),
+                  const SizedBox(width: 8),
+                  const Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: MapLongWordmark(fontSize: 21),
                     ),
                   ),
                 ],
@@ -384,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 10),
             compact
                 ? IconButton.outlined(
-                    tooltip: 'Abrir arquivo .pmap',
+                    tooltip: 'Abrir ou importar arquivo',
                     onPressed: _openFile,
                     icon: const Icon(Icons.folder_open_outlined),
                   )
@@ -806,7 +807,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 12),
                 Text(
                   _filter.trim().isEmpty
-                      ? 'Nenhum mapa ainda. Escolha um modelo, gere um mapa a partir de texto ou abra um arquivo .pmap.'
+                      ? 'Nenhum mapa ainda. Escolha um modelo, gere um mapa a partir de texto ou abra um arquivo .maplong.'
                       : 'Nenhum mapa encontrado.',
                   textAlign: TextAlign.center,
                 ),
@@ -902,7 +903,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               ShaderMask(
                 shaderCallback: (r) => const LinearGradient(
-                  colors: [Color(0xFF7C4DFF), Color(0xFF00B8D4)],
+                  colors: [kBrandCyan, kBrandBlue, kBrandViolet],
                 ).createShader(r),
                 child: const Icon(Icons.auto_fix_high, color: Colors.white),
               ),
@@ -937,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               _QuickTile(
                 icon: Icons.upload_file_outlined,
-                label: 'Arquivo .pmap',
+                label: 'Abrir arquivo',
                 onTap: _openFile,
               ),
               _QuickTile(
@@ -1039,12 +1040,12 @@ class _NewMapButton extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF7C4DFF), Color(0xFF5B6CFF)],
+              colors: [kBrandCyan, kBrandBlue, kBrandViolet],
             ),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7C4DFF).withValues(alpha: 0.35),
+                color: kBrandBlue.withValues(alpha: 0.35),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),
@@ -1315,7 +1316,7 @@ PopupMenuButton<String> _docMenu(
           const PopupMenuItem(value: 'duplicate', child: Text('Duplicar')),
           const PopupMenuItem(
             value: 'export',
-            child: Text('Salvar como arquivo .pmap'),
+            child: Text('Salvar como arquivo .maplong'),
           ),
           const PopupMenuDivider(),
           const PopupMenuItem(
@@ -1650,71 +1651,4 @@ class _PreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PreviewPainter old) => true;
-}
-
-/// Logo do PinealMap (pinha estilizada com degradê).
-class PinealLogo extends StatelessWidget {
-  const PinealLogo({super.key, required this.size});
-  final double size;
-
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(size), painter: _LogoPainter());
-}
-
-class _LogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.shortestSide / 2;
-    final body = Path()
-      ..moveTo(c.dx, c.dy - r * 0.95)
-      ..cubicTo(
-        c.dx + r * 0.85,
-        c.dy - r * 0.4,
-        c.dx + r * 0.7,
-        c.dy + r * 0.7,
-        c.dx,
-        c.dy + r * 0.95,
-      )
-      ..cubicTo(
-        c.dx - r * 0.7,
-        c.dy + r * 0.7,
-        c.dx - r * 0.85,
-        c.dy - r * 0.4,
-        c.dx,
-        c.dy - r * 0.95,
-      )
-      ..close();
-    canvas.drawPath(
-      body,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF9D7BFF), Color(0xFF5B3FD9)],
-        ).createShader(Offset.zero & size),
-    );
-    final s = Paint()
-      ..color = Colors.white.withValues(alpha: 0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = r * 0.09;
-    for (var i = 0; i < 4; i++) {
-      final y = c.dy - r * 0.35 + i * r * 0.3;
-      canvas.drawArc(
-        Rect.fromCenter(
-          center: Offset(c.dx, y),
-          width: r * (1.1 - i * 0.12),
-          height: r * 0.4,
-        ),
-        0.2,
-        math.pi - 0.4,
-        false,
-        s,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LogoPainter old) => false;
 }

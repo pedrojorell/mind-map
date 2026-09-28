@@ -270,7 +270,7 @@ String _pdfSafe(String s) =>
     String.fromCharCodes(s.runes.where((r) => r < 0x100 || r == 0x2022));
 
 Future<Uint8List> toPdf(MindMapDoc doc, Uint8List? png) async {
-  final pdf = pw.Document(title: doc.name, creator: 'PinealMap');
+  final pdf = pw.Document(title: doc.name, creator: 'MapLong');
   if (png != null) {
     final img = pw.MemoryImage(png);
     pdf.addPage(
@@ -505,6 +505,7 @@ MindMapDoc freeMindToDoc(String name, String xml) {
 /// Formatos aceitos em "Abrir / importar".
 const kImportExtensions = [
   kFileExtension,
+  kLegacyFileExtension,
   'json',
   'md',
   'markdown',
@@ -513,7 +514,7 @@ const kImportExtensions = [
   'mm',
 ];
 
-/// Abre um arquivo do PinealMap ou importa de outro formato.
+/// Abre um arquivo do MapLong ou importa de outro formato.
 Future<MindMapDoc?> importFromFile(
   BuildContext context,
   Library library,
@@ -539,11 +540,12 @@ Future<MindMapDoc?> importFromFile(
 
     MindMapDoc doc;
     switch (ext) {
-      case 'pmap':
+      case kFileExtension:
+      case kLegacyFileExtension:
       case 'json':
         final json = jsonDecode(text);
         if (json is! Map<String, dynamic>) {
-          throw const FormatException('Não é um arquivo do PinealMap.');
+          throw const FormatException('Não é um arquivo do MapLong.');
         }
         doc = MindMapDoc.fromJson(json)..filePath = path;
         return library.importDoc(doc);

@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pinealmap/editor_controller.dart';
-import 'package:pinealmap/file_actions.dart';
-import 'package:pinealmap/import_export.dart';
-import 'package:pinealmap/layout.dart';
-import 'package:pinealmap/library.dart';
-import 'package:pinealmap/main.dart';
-import 'package:pinealmap/models.dart';
-import 'package:pinealmap/templates.dart';
-import 'package:pinealmap/widgets/node_view.dart';
+import 'package:maplong/editor_controller.dart';
+import 'package:maplong/file_actions.dart';
+import 'package:maplong/import_export.dart';
+import 'package:maplong/layout.dart';
+import 'package:maplong/library.dart';
+import 'package:maplong/main.dart';
+import 'package:maplong/models.dart';
+import 'package:maplong/templates.dart';
+import 'package:maplong/widgets/node_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<Library> newLibrary([Map<String, Object> values = const {}]) async {
@@ -475,7 +475,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     final lib = await newLibrary();
-    await tester.pumpWidget(PinealMapApp(library: lib));
+    await tester.pumpWidget(MapLongApp(library: lib));
     await tester.pumpAndSettle();
 
     expect(find.text('Começar com um modelo'), findsOneWidget);

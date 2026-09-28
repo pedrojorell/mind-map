@@ -1,4 +1,6 @@
-# PinealMap 🌲
+<p align="center"><img src="assets/brand/maplong_logo.png" alt="MapLong" width="420"></p>
+
+# MapLong
 
 Aplicativo de **mapas mentais** que roda localmente (Windows, macOS, Linux ou no
 navegador), funciona offline e salva seus documentos.
@@ -10,7 +12,7 @@ Pré-requisito: [Flutter](https://docs.flutter.dev/get-started/install) 3.32 ou 
 ```bash
 flutter pub get
 
-# Desktop (recomendado — salva arquivos .pmap direto no disco)
+# Desktop (recomendado — salva arquivos .maplong direto no disco)
 flutter run -d windows   # ou: -d macos / -d linux
 
 # Navegador
@@ -20,7 +22,7 @@ flutter run -d chrome
 Para gerar um executável:
 
 ```bash
-flutter build windows    # build/windows/x64/runner/Release/
+flutter build windows    # build/windows/x64/runner/Release/maplong.exe
 flutter build macos      # build/macos/Build/Products/Release/
 flutter build linux      # build/linux/x64/release/bundle/
 flutter build web        # build/web/ (sirva com qualquer servidor estático)
@@ -34,8 +36,11 @@ flutter build web        # build/web/ (sirva com qualquer servidor estático)
 - **Histórico de versões**: uma versão é guardada automaticamente a cada 10
   minutos de edição (Exibir → Versões); dá para restaurar qualquer uma.
 - **Lixeira**: mapas excluídos ficam 30 dias na lixeira e podem ser restaurados.
-- **Arquivos `.pmap`** (JSON legível): `Ctrl+S` salva, `Ctrl+Shift+S` salva como.
-  Um `•` no título indica alterações ainda não gravadas no arquivo.
+- **Arquivos `.maplong`** (JSON legível): `Ctrl+S` salva, `Ctrl+Shift+S` salva como.
+  Um `•` no título indica alterações ainda não gravadas no arquivo. Arquivos
+  `.pmap` da versão anterior (PinealMap) continuam abrindo normalmente.
+- Ao abrir o MapLong pela primeira vez, os mapas salvos com o nome antigo
+  (PinealMap) são trazidos automaticamente.
 
 ## Recursos
 
@@ -44,7 +49,7 @@ flutter build web        # build/web/ (sirva com qualquer servidor estático)
 - Modelos por categoria (Básico, Estudos, Projetos, Reuniões, Pessoal)
 - Mapas recentes em lista ou grade, favoritos, lixeira e busca
 - **Texto para mapa mental**: cole uma lista com recuo e gere o mapa
-- Importa `.pmap`, Markdown, TXT, OPML e FreeMind (`.mm`)
+- Importa `.maplong`/`.pmap`, Markdown, TXT, OPML e FreeMind (`.mm`)
 
 **Estruturas**: mapa balanceado, à direita, à esquerda, mapa lógico, organograma,
 árvore, linha do tempo e espinha de peixe. Os tópicos se reorganizam sozinhos
@@ -109,18 +114,18 @@ livre ou com tópicos flutuantes.
 
 ```
 lib/
-  main.dart               app e tema
+  main.dart               app, tema e migração do nome antigo
   models.dart             MindMapDoc / MindMapNode e elementos (+ JSON)
   library.dart            biblioteca local, favoritos, lixeira e versões
   editor_controller.dart  seleção, histórico e operações do editor
   layout.dart             estruturas automáticas e anti-sobreposição
   templates.dart          modelos e texto → mapa
-  file_actions.dart       salvar/abrir .pmap e exportar PNG
+  file_actions.dart       salvar arquivos .maplong e exportar PNG
   import_export.dart      PDF, Word, CSV, HTML, OPML, FreeMind, Markdown, TXT
   media.dart              imagens, documentos e arrastar e soltar
   io/                     leitura/gravação de arquivos (desktop x web)
   screens/                abas, tela inicial e editor
-  widgets/                canvas, tópicos, painéis, faixa de ferramentas,
+  widgets/                marca (logo), canvas, tópicos, painéis, faixa de ferramentas,
                           esboço, Gantt, marcadores e mídia
 test/                     testes
 ```

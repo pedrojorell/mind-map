@@ -94,7 +94,7 @@ class MindMapCanvasState extends State<MindMapCanvas> {
   // Contagem de cliques seguidos num mesmo tópico (2 = editar, 3 = novo).
   String? _clickNode;
   int _clickCount = 0;
-  DateTime _clickAt = DateTime(0);
+  Duration _clickAt = Duration.zero;
   Offset _clickPos = Offset.zero;
 
   EditorController get editor => widget.editor;
@@ -263,12 +263,13 @@ class MindMapCanvasState extends State<MindMapCanvas> {
 
   void _onNodePointerDown(String id, PointerDownEvent e) {
     if (e.buttons != kPrimaryMouseButton) return;
-    final now = DateTime.now();
+    // Usa o horário do evento (e não o relógio) para medir o intervalo.
+    final now = e.timeStamp;
     // Cliques rápidos no mesmo ponto contam para o tópico do primeiro clique,
     // mesmo que ele mude de tamanho ao entrar em edição.
     final quick =
         _clickNode != null &&
-        now.difference(_clickAt) < const Duration(milliseconds: 450) &&
+        now - _clickAt < const Duration(milliseconds: 450) &&
         (e.position - _clickPos).distance < 12;
     if (quick) {
       _clickCount++;

@@ -1,9 +1,9 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pinealmap/layout.dart';
-import 'package:pinealmap/models.dart';
-import 'package:pinealmap/templates.dart';
+import 'package:maplong/layout.dart';
+import 'package:maplong/models.dart';
+import 'package:maplong/templates.dart';
 
 void main() {
   test('nenhuma estrutura sobrepõe tópicos', () {

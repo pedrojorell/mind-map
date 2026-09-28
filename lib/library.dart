@@ -12,6 +12,8 @@ import 'models.dart';
 class Library extends ChangeNotifier {
   Library({SharedPreferences? prefs}) : _prefsOverride = prefs;
 
+  // As chaves mantêm o prefixo antigo (PinealMap) para preservar os mapas
+  // já salvos antes da mudança de nome para MapLong.
   static const _kIndex = 'pinealmap.index.v2';
   static const _kDocPrefix = 'pinealmap.doc.v2.';
   static const _kTheme = 'pinealmap.theme.v1';
@@ -137,7 +139,7 @@ class Library extends ChangeNotifier {
         final d = MindMapDoc.fromJson(jsonDecode(raw) as Map<String, dynamic>);
         _docs[d.id] = d;
       } catch (e) {
-        debugPrint('PinealMap: documento $id corrompido: $e');
+        debugPrint('MapLong: documento $id corrompido: $e');
       }
     }
 
@@ -153,7 +155,7 @@ class Library extends ChangeNotifier {
         await _writeIndex();
         await _prefs.remove(_kLegacyDocs);
       } catch (e) {
-        debugPrint('PinealMap: falha ao migrar dados antigos: $e');
+        debugPrint('MapLong: falha ao migrar dados antigos: $e');
       }
     }
 

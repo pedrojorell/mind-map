@@ -10,3 +10,7 @@ Future<void> writeBytes(String path, List<int> bytes) =>
 Future<List<int>> readBytes(String path) => impl.readBytes(path);
 
 Future<bool> fileExists(String path) => impl.fileExists(path);
+
+/// Copia os dados salvos pelo app com o nome antigo (PinealMap) para a
+/// pasta do MapLong, na primeira vez que o MapLong é aberto.
+Future<void> migrateLegacyStorage() => impl.migrateLegacyStorage();
