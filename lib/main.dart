@@ -5,18 +5,24 @@ import 'library.dart';
 import 'widgets/brand.dart';
 import 'screens/workspace_screen.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   // Traz os mapas salvos quando o app ainda se chamava PinealMap.
   await migrateLegacyStorage();
-  runApp(const MapLongApp());
+  // Arquivos recebidos ao abrir o app (ex.: dois cliques num .maplong).
+  runApp(
+    MapLongApp(initialFiles: args.where((a) => !a.startsWith('-')).toList()),
+  );
 }
 
 class MapLongApp extends StatefulWidget {
-  const MapLongApp({super.key, this.library});
+  const MapLongApp({super.key, this.library, this.initialFiles = const []});
 
   /// Permite injetar uma biblioteca (usado nos testes).
   final Library? library;
+
+  /// Caminhos de arquivos para abrir assim que o app carregar.
+  final List<String> initialFiles;
 
   @override
   State<MapLongApp> createState() => _MapLongAppState();
@@ -76,7 +82,10 @@ class _MapLongAppState extends State<MapLongApp> with WidgetsBindingObserver {
         theme: _theme(Brightness.light),
         darkTheme: _theme(Brightness.dark),
         home: library.isLoaded
-            ? WorkspaceScreen(library: library)
+            ? WorkspaceScreen(
+                library: library,
+                initialFiles: widget.initialFiles,
+              )
             : const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
     );

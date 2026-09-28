@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../import_export.dart';
+
 import '../library.dart';
 import '../models.dart';
 import '../templates.dart';
@@ -13,9 +15,16 @@ import 'home_screen.dart';
 /// para cada mapa aberto. Os mapas continuam abertos (com zoom, seleção e
 /// histórico) ao trocar de aba.
 class WorkspaceScreen extends StatefulWidget {
-  const WorkspaceScreen({super.key, required this.library});
+  const WorkspaceScreen({
+    super.key,
+    required this.library,
+    this.initialFiles = const [],
+  });
 
   final Library library;
+
+  /// Arquivos para abrir em abas logo ao iniciar.
+  final List<String> initialFiles;
 
   @override
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
@@ -33,10 +42,31 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   void initState() {
     super.initState();
     lib.addListener(_onLibrary);
+    _openFiles(widget.initialFiles);
+    // Arquivos enviados por uma segunda janela do MapLong (Windows).
+    _openFilesChannel.setMethodCallHandler((call) async {
+      if (call.method == 'open' && call.arguments is List) {
+        await _openFiles((call.arguments as List).whereType<String>().toList());
+      }
+    });
+  }
+
+  static const _openFilesChannel = MethodChannel('maplong/open_files');
+
+  Future<void> _openFiles(List<String> paths) async {
+    for (final path in paths) {
+      try {
+        final doc = await importFromPath(lib, path);
+        if (doc != null && mounted) openDoc(doc);
+      } catch (e) {
+        debugPrint('MapLong: não foi possível abrir $path: $e');
+      }
+    }
   }
 
   @override
   void dispose() {
+    _openFilesChannel.setMethodCallHandler(null);
     lib.removeListener(_onLibrary);
     super.dispose();
   }

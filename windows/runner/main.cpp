@@ -17,6 +17,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+  // Apenas uma janela do MapLong: se ela já estiver aberta, entrega os
+  // arquivos recebidos (ex.: dois cliques num .maplong) e encerra.
+  HANDLE instance_mutex =
+      ::CreateMutexW(nullptr, TRUE, L"Local\\MapLong.SingleInstance");
+  if (instance_mutex != nullptr && ::GetLastError() == ERROR_ALREADY_EXISTS) {
+    HWND existing =
+        ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"MapLong");
+    if (existing != nullptr) {
+      std::string payload;
+      for (const std::string& arg : GetCommandLineArguments()) {
+        payload += arg;
+        payload += '\n';
+      }
+      COPYDATASTRUCT data = {};
+      data.dwData = kOpenFilesCopyDataId;
+      data.cbData = static_cast<DWORD>(payload.size());
+      data.lpData = payload.data();
+      ::SendMessageW(existing, WM_COPYDATA, 0,
+                     reinterpret_cast<LPARAM>(&data));
+      if (::IsIconic(existing)) {
+        ::ShowWindow(existing, SW_RESTORE);
+      }
+      ::SetForegroundWindow(existing);
+    }
+    ::CloseHandle(instance_mutex);
+    ::CoUninitialize();
+    return EXIT_SUCCESS;
+  }
+
   flutter::DartProject project(L"data");
 
   std::vector<std::string> command_line_arguments =
@@ -38,6 +67,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
+  if (instance_mutex != nullptr) {
+    ::CloseHandle(instance_mutex);
+  }
   ::CoUninitialize();
   return EXIT_SUCCESS;
 }

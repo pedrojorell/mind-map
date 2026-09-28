@@ -514,6 +514,55 @@ const kImportExtensions = [
   'mm',
 ];
 
+/// Lê um arquivo do MapLong ou de outro formato aceito e o coloca na
+/// biblioteca. [path] é o caminho no disco (desktop), se houver.
+MindMapDoc importBytes(
+  Library library,
+  String fileName,
+  List<int> bytes, {
+  String? path,
+}) {
+  final text = utf8.decode(bytes, allowMalformed: true);
+  final dot = fileName.lastIndexOf('.');
+  final ext = dot < 0 ? '' : fileName.substring(dot + 1).toLowerCase();
+  final base = dot < 0 ? fileName : fileName.substring(0, dot);
+  final name = library.uniqueName(base);
+
+  MindMapDoc doc;
+  switch (ext) {
+    case kFileExtension:
+    case kLegacyFileExtension:
+    case 'json':
+      final json = jsonDecode(text);
+      if (json is! Map<String, dynamic>) {
+        throw const FormatException('Não é um arquivo do MapLong.');
+      }
+      doc = MindMapDoc.fromJson(json)..filePath = path;
+      return library.importDoc(doc);
+    case 'md':
+    case 'markdown':
+      doc = docFromOutline(name, markdownToOutline(text));
+    case 'opml':
+      doc = opmlToDoc(name, text);
+    case 'mm':
+      doc = freeMindToDoc(name, text);
+    default:
+      doc = docFromOutline(name, text);
+  }
+  doc.name = name;
+  doc.autoLayout = true;
+  autoLayout(doc, const {});
+  library.add(doc);
+  return doc;
+}
+
+/// Abre um arquivo pelo caminho (ex.: dois cliques num .maplong).
+Future<MindMapDoc?> importFromPath(Library library, String path) async {
+  if (!canUseFilePaths || !await fileExists(path)) return null;
+  final name = path.split(RegExp(r'[\\/]')).last;
+  return importBytes(library, name, await readBytes(path), path: path);
+}
+
 /// Abre um arquivo do MapLong ou importa de outro formato.
 Future<MindMapDoc?> importFromFile(
   BuildContext context,
@@ -532,38 +581,8 @@ Future<MindMapDoc?> importFromFile(
     final path = canUseFilePaths ? f.path : null;
     if (bytes == null && path != null) bytes = await readBytes(path);
     if (bytes == null) throw const FormatException('Arquivo vazio.');
-    final text = utf8.decode(bytes, allowMalformed: true);
-    final dot = f.name.lastIndexOf('.');
-    final ext = dot < 0 ? '' : f.name.substring(dot + 1).toLowerCase();
-    final base = dot < 0 ? f.name : f.name.substring(0, dot);
-    final name = library.uniqueName(base);
-
-    MindMapDoc doc;
-    switch (ext) {
-      case kFileExtension:
-      case kLegacyFileExtension:
-      case 'json':
-        final json = jsonDecode(text);
-        if (json is! Map<String, dynamic>) {
-          throw const FormatException('Não é um arquivo do MapLong.');
-        }
-        doc = MindMapDoc.fromJson(json)..filePath = path;
-        return library.importDoc(doc);
-      case 'md':
-      case 'markdown':
-        doc = docFromOutline(name, markdownToOutline(text));
-      case 'opml':
-        doc = opmlToDoc(name, text);
-      case 'mm':
-        doc = freeMindToDoc(name, text);
-      default:
-        doc = docFromOutline(name, text);
-    }
-    doc.name = name;
-    doc.autoLayout = true;
-    autoLayout(doc, const {});
-    library.add(doc);
-    if (context.mounted) showSnack(context, 'Importado de ${f.name}.');
+    final doc = importBytes(library, f.name, bytes, path: path);
+    if (context.mounted) showSnack(context, 'Aberto: ${f.name}.');
     return doc;
   } catch (e) {
     if (context.mounted) showSnack(context, 'Não foi possível abrir: $e');
