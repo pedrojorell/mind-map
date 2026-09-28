@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../editor_controller.dart';
 import '../models.dart';
+import '../services/web_apis.dart';
 
 /// Visão Gantt: os tópicos do mapa como linhas de tarefas numa linha do
 /// tempo. Arraste uma barra para mudar as datas; arraste a borda direita
@@ -22,6 +23,39 @@ class GanttView extends StatefulWidget {
 
 class _GanttViewState extends State<GanttView> {
   bool _onlyTasks = false;
+
+  // Feriados nacionais (BrasilAPI), por dia.
+  bool _showHolidays = true;
+  final Map<DateTime, String> _holidays = {};
+  final Set<int> _requestedYears = {};
+  String? _holidayError;
+
+  /// Carrega os feriados dos anos visíveis que ainda não foram buscados.
+  void _ensureHolidays(DateTime first, DateTime last) {
+    if (!_showHolidays) return;
+    for (var y = first.year; y <= last.year; y++) {
+      if (!_requestedYears.add(y)) continue;
+      webApis
+          .brazilHolidays(y)
+          .then((list) {
+            if (!mounted) return;
+            setState(() {
+              _holidayError = null;
+              for (final h in list) {
+                _holidays[DateTime(h.date.year, h.date.month, h.date.day)] =
+                    h.name;
+              }
+            });
+          })
+          .catchError((Object e) {
+            _requestedYears.remove(y);
+            if (mounted) setState(() => _holidayError = '$e');
+          });
+    }
+  }
+
+  String? _holidayOn(DateTime d) =>
+      _showHolidays ? _holidays[DateTime(d.year, d.month, d.day)] : null;
   double _dayWidth = 34;
   final _hScroll = ScrollController();
 
@@ -82,6 +116,7 @@ class _GanttViewState extends State<GanttView> {
     first = first.subtract(const Duration(days: 3));
     last = last.add(const Duration(days: 7));
     final days = last.difference(first).inDays + 1;
+    _ensureHolidays(first, last);
 
     final tasks = rows.where((r) => r.$1.task != null).toList();
     final done = tasks.where((r) => r.$1.task!.done).length;
@@ -102,6 +137,17 @@ class _GanttViewState extends State<GanttView> {
                 Text(
                   '${tasks.length} tarefas · $done concluídas',
                   style: t.bodySmall,
+                ),
+                FilterChip(
+                  avatar: const Icon(Icons.celebration_outlined, size: 16),
+                  label: Text(
+                    _holidayError == null
+                        ? 'Feriados (Brasil)'
+                        : 'Feriados indisponíveis',
+                  ),
+                  tooltip: _holidayError ?? 'Feriados nacionais via BrasilAPI',
+                  selected: _showHolidays,
+                  onSelected: (v) => setState(() => _showHolidays = v),
                 ),
                 FilterChip(
                   label: const Text('Só tarefas'),
@@ -185,6 +231,15 @@ class _GanttViewState extends State<GanttView> {
                                       weekend: cs.surfaceContainerHighest
                                           .withValues(alpha: 0.35),
                                       today: cs.error,
+                                      holidays: {
+                                        for (var i = 0; i < days; i++)
+                                          if (_holidayOn(first.add(_day * i)) !=
+                                              null)
+                                            i,
+                                      },
+                                      holidayColor: Colors.amber.withValues(
+                                        alpha: 0.22,
+                                      ),
                                     ),
                                   ),
                                   for (var i = 0; i < rows.length; i++)
@@ -290,7 +345,8 @@ class _GanttViewState extends State<GanttView> {
                 builder: (_) {
                   final d = first.add(_day * i);
                   final showMonth = d.day == 1 || i == 0;
-                  return Column(
+                  final holiday = _holidayOn(d);
+                  final column = Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
@@ -311,12 +367,20 @@ class _GanttViewState extends State<GanttView> {
                             : '${d.day}',
                         style: TextStyle(
                           fontSize: 10.5,
-                          color: cs.onSurfaceVariant,
+                          color: holiday == null
+                              ? cs.onSurfaceVariant
+                              : Colors.amber.shade800,
+                          fontWeight: holiday == null
+                              ? FontWeight.w400
+                              : FontWeight.w800,
                         ),
                         softWrap: false,
                       ),
                     ],
                   );
+                  return holiday == null
+                      ? column
+                      : Tooltip(message: '🎉 $holiday', child: column);
                 },
               ),
             ),
@@ -475,6 +539,8 @@ class _GridPainter extends CustomPainter {
     required this.line,
     required this.weekend,
     required this.today,
+    this.holidays = const {},
+    this.holidayColor = const Color(0x33FFC107),
   });
 
   final DateTime first;
@@ -486,12 +552,21 @@ class _GridPainter extends CustomPainter {
   final Color weekend;
   final Color today;
 
+  /// Índices dos dias que são feriado.
+  final Set<int> holidays;
+  final Color holidayColor;
+
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()..color = line;
     for (var i = 0; i < days; i++) {
       final d = first.add(Duration(days: i));
-      if (d.weekday >= 6) {
+      if (holidays.contains(i)) {
+        canvas.drawRect(
+          Rect.fromLTWH(i * dayWidth, 0, dayWidth, size.height),
+          Paint()..color = holidayColor,
+        );
+      } else if (d.weekday >= 6) {
         canvas.drawRect(
           Rect.fromLTWH(i * dayWidth, 0, dayWidth, size.height),
           Paint()..color = weekend,

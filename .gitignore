@@ -50,3 +50,6 @@ app.*.map.json
 # Configurações locais do Claude Code (as skills do projeto vão para o Git)
 .claude/*
 !.claude/skills/
+
+# Instaladores gerados
+installer/Output/

@@ -1,0 +1,54 @@
+# Gera o instalador do Windows (MapLong-Setup-<versao>.exe).
+# - Ao criar uma tag "v*" (ex.: v2.0.0), anexa o instalador a um Release.
+# - Também pode ser rodado à mão em Actions > Instalador Windows > Run workflow.
+name: Instalador Windows
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.38.7
+          cache: true
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Testes
+        run: flutter test
+
+      - name: Compilar o app
+        run: flutter build windows --release
+
+      - name: Instalar o Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Gerar o instalador
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path pubspec.yaml -Pattern '^version:\s*([0-9.]+)').Matches[0].Groups[1].Value
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" installer\maplong.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MapLong-Setup
+          path: installer/Output/*.exe
+
+      - name: Publicar no Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/Output/*.exe
+          generate_release_notes: true

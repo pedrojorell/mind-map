@@ -16,6 +16,7 @@ import '../widgets/mind_map_canvas.dart';
 import '../widgets/outline_view.dart';
 import '../widgets/properties_panel.dart';
 import '../widgets/ribbon.dart';
+import '../widgets/web_dialogs.dart';
 import '../widgets/brand.dart';
 
 enum _RibbonTab { home, insert, design, view }
@@ -860,6 +861,8 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
         item('files', Icons.attach_file, 'Anexar documento'),
         item('link', Icons.add_link, 'Adicionar link'),
+        item('wiki', Icons.travel_explore, 'Pesquisar na Wikipédia'),
+        item('freeImage', Icons.image_search, 'Buscar imagem livre'),
         if (n.hasLink) item('openLinks', Icons.open_in_new, 'Abrir link'),
         if (n.childrenIds.isNotEmpty)
           item(
@@ -955,6 +958,10 @@ class _EditorScreenState extends State<EditorScreen> {
         editor.detach(nodeId);
       case 'link':
         await _addLink();
+      case 'wiki':
+        await showWikipediaDialog(context, editor, scenePos: scenePos);
+      case 'freeImage':
+        await showFreeImagesDialog(context, editor, scenePos: scenePos);
       case 'openLinks':
         await showNodeItemsMenu(context, editor, n!.id, 'links', global);
       case 'image':
@@ -1819,6 +1826,27 @@ class _EditorScreenState extends State<EditorScreen> {
           ],
         ),
         RibbonButton(
+          icon: Icons.travel_explore,
+          label: 'Wikipédia',
+          tip:
+              'Pesquisar o assunto na Wikipédia e trazer resumo, link, imagem e subtópicos',
+          onTap: () => showWikipediaDialog(
+            context,
+            editor,
+            scenePos: canvas?.viewportCenterScene ?? Offset.zero,
+          ),
+        ),
+        RibbonButton(
+          icon: Icons.image_search,
+          label: 'Imagens livres',
+          tip: 'Buscar imagens de uso livre (Creative Commons)',
+          onTap: () => showFreeImagesDialog(
+            context,
+            editor,
+            scenePos: canvas?.viewportCenterScene ?? Offset.zero,
+          ),
+        ),
+        RibbonButton(
           icon: Icons.perm_media_outlined,
           label: 'Mídia',
           tip: 'Área de imagens e documentos',
@@ -1986,6 +2014,12 @@ class _EditorScreenState extends State<EditorScreen> {
           icon: Icons.format_color_fill,
           label: 'Fundo',
           onTap: () => _openPanel(PanelTab.map),
+        ),
+        RibbonButton(
+          icon: Icons.auto_awesome,
+          label: 'Tema por cor',
+          tip: 'Gerar um tema de cores a partir de uma cor (The Color API)',
+          onTap: () => showColorThemeDialog(context, editor),
         ),
         const RibbonDivider(),
         RibbonButton(

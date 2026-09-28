@@ -105,6 +105,7 @@ class EditorController extends ChangeNotifier {
       ..background = r.background
       ..relations = r.relations
       ..numbering = r.numbering
+      ..customPalette = r.customPalette
       ..touch();
     if (selectedId != null && !doc.nodes.containsKey(selectedId)) {
       selectedId = doc.rootId;
@@ -964,9 +965,20 @@ class EditorController extends ChangeNotifier {
     });
   }
 
+  /// Aplica uma paleta gerada (ex.: pela The Color API) como tema
+  /// "Personalizado". A primeira cor vai para a ideia principal.
+  void applyCustomPalette(List<String> colors) {
+    if (colors.isEmpty) return;
+    doc.customPalette = List.of(colors);
+    applyTheme('custom');
+  }
+
   /// Aplica um tema: recolore a ideia principal e os ramos com a paleta.
   void applyTheme(String themeId) {
-    final t = themeById(themeId);
+    final previous = doc.themeId;
+    doc.themeId = themeId;
+    final t = doc.theme;
+    doc.themeId = previous;
     mutate(() {
       doc.themeId = t.id;
       doc.background = t.background;

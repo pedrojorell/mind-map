@@ -6,6 +6,7 @@ import '../io/file_io.dart';
 import '../media.dart';
 import '../models.dart';
 import 'properties_panel.dart' show CommitTextField;
+import 'web_dialogs.dart';
 
 Widget _section(BuildContext context, String text, {Widget? trailing}) =>
     Padding(
@@ -113,6 +114,11 @@ class _MediaSectionState extends State<MediaSection> {
                         size: 18,
                       ),
                       label: const Text('Imagem'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () => showFreeImagesDialog(context, editor),
+                      icon: const Icon(Icons.image_search, size: 18),
+                      label: const Text('Imagens livres'),
                     ),
                     FilledButton.tonalIcon(
                       onPressed: () => pickDocuments(context, editor, n.id),

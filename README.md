@@ -7,6 +7,9 @@ navegador), funciona offline e salva seus documentos.
 
 ## Como rodar
 
+> 📘 **Passo a passo completo** (instalar as ferramentas, rodar, testar, gerar o
+> instalador do Windows e publicar a versão web): [docs/TUTORIAL.md](docs/TUTORIAL.md)
+
 Pré-requisito: [Flutter](https://docs.flutter.dev/get-started/install) 3.32 ou mais novo.
 
 ```bash

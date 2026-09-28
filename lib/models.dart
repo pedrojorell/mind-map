@@ -1032,6 +1032,7 @@ class MindMapDoc {
     this.numbering = false,
     this.starred = false,
     this.deletedAt,
+    this.customPalette,
     List<NodeRelation>? relations,
   }) : relations = relations ?? [];
 
@@ -1076,9 +1077,24 @@ class MindMapDoc {
   /// Quando foi para a lixeira (nulo = não está na lixeira).
   int? deletedAt;
 
+  /// Paleta gerada pelo usuário (tema "Personalizado", themeId = 'custom').
+  List<String>? customPalette;
+
   MindMapNode get root => nodes[rootId]!;
 
-  MapTheme get theme => themeById(themeId);
+  MapTheme get theme {
+    final custom = customPalette;
+    if (themeId == 'custom' && custom != null && custom.isNotEmpty) {
+      // A 1ª cor é da ideia principal; as demais colorem os ramos.
+      return MapTheme(
+        'custom',
+        'Personalizado',
+        custom.length > 1 ? custom.sublist(1) : custom,
+        rootFill: custom.first,
+      );
+    }
+    return themeById(themeId);
+  }
 
   /// Cor automática para o i-ésimo ramo principal.
   String branchColor(int i) => autoColor(i, theme.palette);
@@ -1205,6 +1221,7 @@ class MindMapDoc {
     if (numbering) 'numbering': true,
     if (starred) 'starred': true,
     if (deletedAt != null) 'deletedAt': deletedAt,
+    if (customPalette != null) 'customPalette': customPalette,
     'nodes': nodes.map((k, v) => MapEntry(k, v.toJson())),
     if (relations.isNotEmpty)
       'relations': relations.map((r) => r.toJson()).toList(),
@@ -1257,7 +1274,12 @@ class MindMapDoc {
       layout: layout,
       hGap: ((j['hGap'] as num?) ?? 64).toDouble(),
       vGap: ((j['vGap'] as num?) ?? 18).toDouble(),
-      themeId: themeById(j['themeId'] as String?).id,
+      themeId: j['themeId'] == 'custom' && j['customPalette'] is List
+          ? 'custom'
+          : themeById(j['themeId'] as String?).id,
+      customPalette: (j['customPalette'] as List<dynamic>?)
+          ?.whereType<String>()
+          .toList(),
       background: bg is String && bg.trim().isNotEmpty ? bg : null,
       relations: relations,
       numbering: (j['numbering'] as bool?) ?? false,
