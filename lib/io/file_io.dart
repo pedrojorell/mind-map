@@ -14,3 +14,11 @@ Future<bool> fileExists(String path) => impl.fileExists(path);
 /// Copia os dados salvos pelo app com o nome antigo (PinealMap) para a
 /// pasta do MapLong, na primeira vez que o MapLong é aberto.
 Future<void> migrateLegacyStorage() => impl.migrateLegacyStorage();
+
+/// Pasta onde o MapLong guarda os dados no computador (nulo no navegador).
+String? appDataDir() => impl.appDataDir();
+
+/// Acrescenta uma linha a um arquivo de texto (cria a pasta se preciso).
+/// Se o arquivo passar de [maxBytes], guarda o antigo com ".1" e recomeça.
+Future<void> appendLine(String path, String line, {int maxBytes = 1 << 20}) =>
+    impl.appendLine(path, line, maxBytes: maxBytes);

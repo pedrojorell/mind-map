@@ -39,6 +39,9 @@ class Win32Window {
   // Show the current window. Returns true if the window was successfully shown.
   bool Show();
 
+  // Comando usado por |Show| (ex.: SW_SHOWMAXIMIZED para reabrir maximizada).
+  void SetInitialShowCommand(int show_command);
+
   // Release OS resources associated with window.
   void Destroy();
 
@@ -91,6 +94,9 @@ class Win32Window {
   static void UpdateTheme(HWND const window);
 
   bool quit_on_close_ = false;
+
+  // Como a janela aparece na primeira vez (normal ou maximizada).
+  int show_command_ = SW_SHOWNORMAL;
 
   // window handle for top level window.
   HWND window_handle_ = nullptr;

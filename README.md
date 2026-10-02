@@ -82,10 +82,24 @@ livre ou com tópicos flutuantes.
 - Mapa, **Esboço** (lista editável) e **Gantt** (arraste as barras para mudar datas)
 - Apresentação ramo a ramo (`F5`), modo Zen (`F11`) e foco num ramo
 - Minimapa, grade, zoom, localizar (`Ctrl+F`) e substituir (`Ctrl+H`)
-- 8 temas de cores, cor de fundo, estilos de linha e espaçamento
-- Tema claro e escuro do aplicativo
+- 8 temas de cores, tema gerado a partir de uma cor, fundo, estilos de linha e espaçamento
+- Visão Gantt com os feriados nacionais
+
+**Internet (APIs gratuitas, sem chave)**: pesquisa na Wikipédia (resumo, link,
+imagem e subtópicos), imagens livres do Openverse, feriados da BrasilAPI e
+paletas da The Color API.
 
 **Exportar**: imagem PNG, PDF, Word, Excel (CSV), HTML, Markdown, TXT, OPML e FreeMind.
+
+**Acabamento**
+- Configurações: tema claro, escuro ou igual ao sistema; aviso de nova versão
+- Tela Sobre, boas-vindas na primeira abertura e tutorial
+- Indicador "Salvando… / Salvo" e registro de erros sem fechar o app
+- Janela única: arquivos `.maplong` abrem numa aba da janela já aberta
+- A janela lembra tamanho e posição
+- Instalador para Windows e verificação automática de cada Pull Request
+
+Novidades de cada versão: [CHANGELOG.md](CHANGELOG.md).
 
 ## Atalhos
 

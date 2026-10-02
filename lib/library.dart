@@ -17,6 +17,8 @@ class Library extends ChangeNotifier {
   static const _kIndex = 'pinealmap.index.v2';
   static const _kDocPrefix = 'pinealmap.doc.v2.';
   static const _kTheme = 'pinealmap.theme.v1';
+  static const _kCheckUpdates = 'maplong.settings.checkUpdates';
+  static const _kWelcomeSeen = 'maplong.settings.welcomeSeen';
   static const _kLegacyDocs = 'pinealmap.docs.v1';
   static const _kVersionsPrefix = 'pinealmap.versions.v1.';
 
@@ -37,6 +39,18 @@ class Library extends ChangeNotifier {
 
   bool isLoaded = false;
   ThemeMode themeMode = ThemeMode.dark;
+
+  /// Verificar se há versão nova do MapLong ao abrir.
+  bool checkUpdates = true;
+
+  /// A tela de boas-vindas já foi mostrada.
+  bool welcomeSeen = false;
+
+  /// Estado do salvamento automático (para a barra de status).
+  final saveState = ValueNotifier<SaveState>(SaveState.saved);
+
+  /// Mensagem do último erro ao salvar (se houver).
+  String? lastSaveError;
 
   /// Área de transferência interna (subárvore em JSON).
   Map<String, dynamic>? clipboard;
@@ -128,8 +142,13 @@ class Library extends ChangeNotifier {
   Future<void> load() async {
     _prefs = _prefsOverride ?? await SharedPreferences.getInstance();
 
-    final theme = _prefs.getString(_kTheme);
-    if (theme == 'light') themeMode = ThemeMode.light;
+    themeMode = switch (_prefs.getString(_kTheme)) {
+      'light' => ThemeMode.light,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.dark,
+    };
+    checkUpdates = _prefs.getBool(_kCheckUpdates) ?? true;
+    welcomeSeen = _prefs.getBool(_kWelcomeSeen) ?? false;
 
     final ids = _prefs.getStringList(_kIndex) ?? const <String>[];
     for (final id in ids) {
@@ -171,10 +190,43 @@ class Library extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleTheme() {
-    themeMode = themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    _prefs.setString(_kTheme, themeMode == ThemeMode.light ? 'light' : 'dark');
+  /// Tema efetivo agora (resolve "igual ao sistema").
+  bool get isDark => switch (themeMode) {
+    ThemeMode.dark => true,
+    ThemeMode.light => false,
+    ThemeMode.system =>
+      WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+          Brightness.dark,
+  };
+
+  /// Alterna entre claro e escuro (a partir do tema que está na tela).
+  void toggleTheme() => setThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
+
+  void setThemeMode(ThemeMode mode) {
+    themeMode = mode;
+    _prefs.setString(_kTheme, switch (mode) {
+      ThemeMode.light => 'light',
+      ThemeMode.system => 'system',
+      ThemeMode.dark => 'dark',
+    });
     notifyListeners();
+  }
+
+  void setCheckUpdates(bool on) {
+    checkUpdates = on;
+    _prefs.setBool(_kCheckUpdates, on);
+    notifyListeners();
+  }
+
+  void markWelcomeSeen() {
+    welcomeSeen = true;
+    _prefs.setBool(_kWelcomeSeen, true);
+  }
+
+  /// Mostra a tela de boas-vindas de novo na próxima abertura.
+  void resetWelcome() {
+    welcomeSeen = false;
+    _prefs.setBool(_kWelcomeSeen, false);
   }
 
   String uniqueName(String base) {
@@ -251,6 +303,7 @@ class Library extends ChangeNotifier {
   /// Agenda o salvamento (com atraso curto para agrupar edições).
   void scheduleSave(MindMapDoc d) {
     _pendingSaves[d.id]?.cancel();
+    saveState.value = SaveState.saving;
     _pendingSaves[d.id] = Timer(const Duration(milliseconds: 400), () {
       _pendingSaves.remove(d.id);
       _write(d);
@@ -273,8 +326,21 @@ class Library extends ChangeNotifier {
 
   Future<void> _write(MindMapDoc d) async {
     if (!_docs.containsKey(d.id)) return;
-    await _prefs.setString('$_kDocPrefix${d.id}', jsonEncode(d.toJson()));
-    if (d.deletedAt == null) await saveVersion(d);
+    try {
+      final ok = await _prefs.setString(
+        '$_kDocPrefix${d.id}',
+        jsonEncode(d.toJson()),
+      );
+      if (!ok) throw StateError('o armazenamento recusou a gravação');
+      if (d.deletedAt == null) await saveVersion(d);
+      lastSaveError = null;
+      if (_pendingSaves.isEmpty) saveState.value = SaveState.saved;
+    } catch (e) {
+      // Ex.: armazenamento do navegador cheio. O mapa continua aberto.
+      lastSaveError = '$e';
+      saveState.value = SaveState.error;
+      debugPrint('MapLong: falha ao salvar "${d.name}": $e');
+    }
   }
 
   Future<void> _writeIndex() =>
@@ -283,6 +349,10 @@ class Library extends ChangeNotifier {
   @override
   void dispose() {
     flush();
+    saveState.dispose();
     super.dispose();
   }
 }
+
+/// Estado do salvamento automático.
+enum SaveState { saved, saving, error }

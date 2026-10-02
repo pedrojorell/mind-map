@@ -58,3 +58,40 @@ Future<void> migrateLegacyStorage() async {
     }
   }
 }
+
+/// Mesma pasta usada pelo shared_preferences de cada sistema.
+String? appDataDir() {
+  final env = Platform.environment;
+  final sep = Platform.pathSeparator;
+  if (Platform.isWindows) {
+    final appData = env['APPDATA'];
+    return appData == null ? null : '$appData${sep}MapLong${sep}MapLong';
+  }
+  final home = env['HOME'];
+  if (Platform.isMacOS) {
+    return home == null
+        ? null
+        : '$home/Library/Application Support/com.maplong.maplong';
+  }
+  if (Platform.isLinux) {
+    final data =
+        env['XDG_DATA_HOME'] ?? (home == null ? null : '$home/.local/share');
+    return data == null ? null : '$data/com.maplong.maplong';
+  }
+  return null;
+}
+
+Future<void> appendLine(
+  String path,
+  String line, {
+  int maxBytes = 1 << 20,
+}) async {
+  final file = File(path);
+  await file.parent.create(recursive: true);
+  if (await file.exists() && await file.length() > maxBytes) {
+    final old = File('$path.1');
+    if (await old.exists()) await old.delete();
+    await file.rename(old.path);
+  }
+  await File(path).writeAsString('$line\n', mode: FileMode.append, flush: true);
+}

@@ -59,6 +59,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   if (!window.Create(L"MapLong", origin, size)) {
     return EXIT_FAILURE;
   }
+  window.RestorePlacement();
   window.SetQuitOnClose(true);
 
   ::MSG msg;

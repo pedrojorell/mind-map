@@ -5,12 +5,74 @@
 #include <optional>
 #include <string>
 
+#include <flutter_windows.h>
+
 #include "flutter/generated_plugin_registrant.h"
+
+namespace {
+
+// Onde a posição da janela fica guardada (HKEY_CURRENT_USER).
+constexpr wchar_t kWindowRegistryKey[] = L"Software\\MapLong\\Window";
+constexpr wchar_t kPlacementValue[] = L"Placement";
+
+// Tamanho mínimo da janela (em pixels lógicos, a 100% de escala).
+constexpr int kMinWidth = 900;
+constexpr int kMinHeight = 600;
+
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
 FlutterWindow::~FlutterWindow() {}
+
+void FlutterWindow::RestorePlacement() {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr) {
+    return;
+  }
+  WINDOWPLACEMENT placement = {};
+  DWORD size = sizeof(placement);
+  if (::RegGetValueW(HKEY_CURRENT_USER, kWindowRegistryKey, kPlacementValue,
+                     RRF_RT_REG_BINARY, nullptr, &placement,
+                     &size) != ERROR_SUCCESS ||
+      size != sizeof(placement) || placement.length != sizeof(placement)) {
+    return;
+  }
+  // O monitor onde a janela estava pode ter sido desconectado.
+  if (::MonitorFromRect(&placement.rcNormalPosition,
+                        MONITOR_DEFAULTTONULL) == nullptr) {
+    return;
+  }
+  const bool maximized = placement.showCmd == SW_SHOWMAXIMIZED;
+  // Só posiciona agora; a janela aparece quando o primeiro quadro estiver
+  // pronto (evita um piscar branco).
+  placement.showCmd = SW_HIDE;
+  placement.flags = 0;
+  ::SetWindowPlacement(hwnd, &placement);
+  SetInitialShowCommand(maximized ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
+}
+
+void FlutterWindow::SavePlacement() {
+  HWND hwnd = GetHandle();
+  if (hwnd == nullptr) {
+    return;
+  }
+  WINDOWPLACEMENT placement = {};
+  placement.length = sizeof(placement);
+  if (!::GetWindowPlacement(hwnd, &placement)) {
+    return;
+  }
+  // Minimizada ao fechar: reabre como estava antes de minimizar.
+  if (placement.showCmd == SW_SHOWMINIMIZED ||
+      placement.showCmd == SW_MINIMIZE) {
+    placement.showCmd = (placement.flags & WPF_RESTORETOMAXIMIZED)
+                            ? SW_SHOWMAXIMIZED
+                            : SW_SHOWNORMAL;
+  }
+  ::RegSetKeyValueW(HKEY_CURRENT_USER, kWindowRegistryKey, kPlacementValue,
+                    REG_BINARY, &placement, sizeof(placement));
+}
 
 bool FlutterWindow::OnCreate() {
   if (!Win32Window::OnCreate()) {
@@ -72,6 +134,16 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   switch (message) {
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
+      break;
+    case WM_GETMINMAXINFO: {
+      auto* info = reinterpret_cast<MINMAXINFO*>(lparam);
+      const UINT dpi = FlutterDesktopGetDpiForHWND(hwnd);
+      info->ptMinTrackSize.x = ::MulDiv(kMinWidth, dpi, 96);
+      info->ptMinTrackSize.y = ::MulDiv(kMinHeight, dpi, 96);
+      return 0;
+    }
+    case WM_CLOSE:
+      SavePlacement();
       break;
     case WM_COPYDATA: {
       const auto* data = reinterpret_cast<const COPYDATASTRUCT*>(lparam);

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'io/file_io.dart';
 import 'library.dart';
+import 'services/app_log.dart';
 import 'widgets/brand.dart';
 import 'screens/workspace_screen.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Erros inesperados vão para o registro em vez de fechar o app.
+  AppLog.install();
   // Traz os mapas salvos quando o app ainda se chamava PinealMap.
   await migrateLegacyStorage();
   // Arquivos recebidos ao abrir o app (ex.: dois cliques num .maplong).
@@ -78,6 +81,7 @@ class _MapLongAppState extends State<MapLongApp> with WidgetsBindingObserver {
       builder: (context, _) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'MapLong',
+        scaffoldMessengerKey: AppLog.messengerKey,
         themeMode: library.themeMode,
         theme: _theme(Brightness.light),
         darkTheme: _theme(Brightness.dark),

@@ -18,6 +18,10 @@ Future<Library> newLibrary([Map<String, Object> values = const {}]) async {
   SharedPreferences.setMockInitialValues(values);
   final lib = Library(prefs: await SharedPreferences.getInstance());
   await lib.load();
+  // Nos testes não há boas-vindas nem consulta ao GitHub.
+  lib
+    ..markWelcomeSeen()
+    ..setCheckUpdates(false);
   return lib;
 }
 

@@ -1,0 +1,33 @@
+# Verifica cada Pull Request e cada envio: formatação, análise e testes.
+# Um PR com falha aparece com um X vermelho e não deve ser aceito.
+name: Verificar código
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.38.7
+          cache: true
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Formatação
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Análise do código
+        run: flutter analyze
+
+      - name: Testes
+        run: flutter test

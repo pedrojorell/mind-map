@@ -17,6 +17,7 @@ import '../widgets/outline_view.dart';
 import '../widgets/properties_panel.dart';
 import '../widgets/ribbon.dart';
 import '../widgets/web_dialogs.dart';
+import '../widgets/app_dialogs.dart';
 import '../widgets/brand.dart';
 
 enum _RibbonTab { home, insert, design, view }
@@ -1458,12 +1459,10 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
               const SizedBox(width: 4),
               IconButton(
-                tooltip: widget.library.themeMode == ThemeMode.dark
-                    ? 'Tema claro'
-                    : 'Tema escuro',
+                tooltip: widget.library.isDark ? 'Tema claro' : 'Tema escuro',
                 onPressed: widget.library.toggleTheme,
                 icon: Icon(
-                  widget.library.themeMode == ThemeMode.dark
+                  widget.library.isDark
                       ? Icons.light_mode_outlined
                       : Icons.dark_mode_outlined,
                 ),
@@ -2150,12 +2149,10 @@ class _EditorScreenState extends State<EditorScreen> {
           onTap: _showStats,
         ),
         RibbonButton(
-          icon: widget.library.themeMode == ThemeMode.dark
+          icon: widget.library.isDark
               ? Icons.light_mode_outlined
               : Icons.dark_mode_outlined,
-          label: widget.library.themeMode == ThemeMode.dark
-              ? 'Modo claro'
-              : 'Modo escuro',
+          label: widget.library.isDark ? 'Modo claro' : 'Modo escuro',
           onTap: widget.library.toggleTheme,
         ),
       ],
@@ -2435,6 +2432,12 @@ class _EditorScreenState extends State<EditorScreen> {
             color: cs.onSurfaceVariant,
             onPressed: () => showShortcutsDialog(context),
           ),
+          IconButton(
+            tooltip: 'Configurações',
+            icon: const Icon(Icons.settings_outlined),
+            color: cs.onSurfaceVariant,
+            onPressed: () => showSettingsDialog(context, widget.library),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -2478,9 +2481,41 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ],
           const Spacer(),
-          Icon(Icons.cloud_done_outlined, size: 14, color: cs.primary),
-          const SizedBox(width: 4),
-          Text('Salvo', style: t),
+          ValueListenableBuilder<SaveState>(
+            valueListenable: widget.library.saveState,
+            builder: (context, state, _) {
+              final (icon, label, color) = switch (state) {
+                SaveState.saving => (
+                  Icons.sync,
+                  'Salvando…',
+                  cs.onSurfaceVariant,
+                ),
+                SaveState.error => (
+                  Icons.error_outline,
+                  'Erro ao salvar',
+                  cs.error,
+                ),
+                SaveState.saved => (
+                  Icons.cloud_done_outlined,
+                  'Salvo',
+                  cs.primary,
+                ),
+              };
+              return Tooltip(
+                message: state == SaveState.error
+                    ? 'Não foi possível salvar: ${widget.library.lastSaveError}'
+                    : 'As alterações são salvas automaticamente',
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 14, color: color),
+                    const SizedBox(width: 4),
+                    Text(label, style: t?.copyWith(color: color)),
+                  ],
+                ),
+              );
+            },
+          ),
           const SizedBox(width: 12),
           if (!_outline) ...[
             IconButton(

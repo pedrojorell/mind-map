@@ -21,6 +21,10 @@ class FlutterWindow : public Win32Window {
   explicit FlutterWindow(const flutter::DartProject& project);
   virtual ~FlutterWindow();
 
+  // Volta a janela para o tamanho e a posição da última vez (se o monitor
+  // ainda existir). Chame depois de Create e antes de a janela aparecer.
+  void RestorePlacement();
+
  protected:
   // Win32Window:
   bool OnCreate() override;
@@ -29,6 +33,9 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  // Guarda tamanho, posição e se está maximizada (registro do usuário).
+  void SavePlacement();
+
   // The project to run.
   flutter::DartProject project_;
 

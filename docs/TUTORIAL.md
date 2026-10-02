@@ -285,6 +285,15 @@ Abra o MapLong (`flutter run -d windows` ou o instalado) e siga:
   10 minutos de edição).
 - Se você usava o app com o nome antigo (**PinealMap**), os mapas são
   trazidos automaticamente na primeira vez que o MapLong abre.
+- **Configurações** (barra lateral da tela inicial, ou o ícone ⚙ no editor):
+  tema claro/escuro/igual ao sistema, aviso de versão nova, boas-vindas e
+  botões **Abrir pasta dos dados** e **Registro de erros**.
+- **Registro de erros:** se algo der errado, o MapLong não fecha. Ele mostra
+  um aviso e grava o detalhe em `%APPDATA%\MapLong\MapLong\logs\maplong.log`.
+  Envie esse arquivo ao relatar um problema (Sobre ▸ **Relatar problema**).
+- A barra de status do editor mostra **Salvando… / Salvo / Erro ao salvar**.
+- A janela lembra o tamanho e a posição (e se estava maximizada) de uma vez
+  para a outra.
 
 ---
 
@@ -486,6 +495,23 @@ flutter pub upgrade
 ```
 
 Se continuar, confira se o Flutter está atualizado: `flutter upgrade`.
+
+### 10.10 A verificação do Pull Request falhou (X vermelho no GitHub)
+
+A automação **Verificar código** confere formatação, análise e testes. Rode
+o mesmo no seu computador e corrija o que aparecer:
+
+```powershell
+dart format lib test
+flutter analyze
+flutter test
+```
+
+### 10.11 Como as pessoas ficam sabendo de versões novas
+
+Quando você publica uma versão (passo 9), quem tem o MapLong instalado vê uma
+faixa **"MapLong X disponível"** ao abrir o app, com o botão para baixar o
+instalador. Dá para desligar em Configurações.
 
 ---
 

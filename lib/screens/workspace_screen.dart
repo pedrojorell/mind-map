@@ -2,7 +2,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_info.dart';
 import '../import_export.dart';
+import '../services/updates.dart';
+import '../widgets/app_dialogs.dart';
 
 import '../library.dart';
 import '../models.dart';
@@ -43,6 +46,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     super.initState();
     lib.addListener(_onLibrary);
     _openFiles(widget.initialFiles);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onStart());
     // Arquivos enviados por uma segunda janela do MapLong (Windows).
     _openFilesChannel.setMethodCallHandler((call) async {
       if (call.method == 'open' && call.arguments is List) {
@@ -52,6 +56,20 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   static const _openFilesChannel = MethodChannel('maplong/open_files');
+
+  /// Versão nova encontrada no GitHub (mostrada numa faixa no topo).
+  UpdateInfo? _update;
+
+  /// Boas-vindas na primeira abertura e verificação de atualização.
+  Future<void> _onStart() async {
+    if (!mounted) return;
+    if (!lib.welcomeSeen && widget.initialFiles.isEmpty) {
+      await showWelcomeDialog(context, lib);
+    }
+    if (!lib.checkUpdates) return;
+    final info = await checkForUpdate();
+    if (info != null && mounted) setState(() => _update = info);
+  }
 
   Future<void> _openFiles(List<String> paths) async {
     for (final path in paths) {
@@ -158,6 +176,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               onClose: _close,
               onNew: _newMap,
             ),
+            if (_update case final info?)
+              _UpdateBar(
+                info: info,
+                onOpen: () => showUpdateDialog(context, info),
+                onDismiss: () => setState(() => _update = null),
+              ),
             Expanded(
               child: IndexedStack(
                 index: _active + 1,
@@ -366,6 +390,54 @@ class _TabState extends State<_Tab> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Faixa discreta avisando que há uma versão nova.
+class _UpdateBar extends StatelessWidget {
+  const _UpdateBar({
+    required this.info,
+    required this.onOpen,
+    required this.onDismiss,
+  });
+
+  final UpdateInfo info;
+  final VoidCallback onOpen;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            Icon(
+              Icons.system_update_alt,
+              size: 18,
+              color: cs.onPrimaryContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'MapLong ${info.version} está disponível '
+                '(você usa a $kAppVersion).',
+                style: TextStyle(color: cs.onPrimaryContainer),
+              ),
+            ),
+            TextButton(onPressed: onOpen, child: const Text('Ver novidades')),
+            IconButton(
+              tooltip: 'Dispensar',
+              visualDensity: VisualDensity.compact,
+              onPressed: onDismiss,
+              icon: const Icon(Icons.close, size: 18),
+            ),
+          ],
         ),
       ),
     );

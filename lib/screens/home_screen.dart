@@ -9,6 +9,7 @@ import '../layout.dart';
 import '../library.dart';
 import '../models.dart';
 import '../templates.dart';
+import '../widgets/app_dialogs.dart';
 import '../widgets/brand.dart';
 import 'editor_screen.dart';
 
@@ -418,11 +419,21 @@ class _HomeScreenState extends State<HomeScreen> {
             Divider(color: cs.outlineVariant),
             _sideAction(
               compact,
-              lib.themeMode == ThemeMode.dark
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
-              lib.themeMode == ThemeMode.dark ? 'Modo claro' : 'Modo escuro',
+              lib.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              lib.isDark ? 'Modo claro' : 'Modo escuro',
               lib.toggleTheme,
+            ),
+            _sideAction(
+              compact,
+              Icons.settings_outlined,
+              'Configurações',
+              () => showSettingsDialog(context, lib),
+            ),
+            _sideAction(
+              compact,
+              Icons.info_outline,
+              'Sobre o MapLong',
+              () => showAboutMapLong(context),
             ),
             _sideAction(
               compact,
@@ -459,7 +470,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 : MainAxisAlignment.start,
             children: [
               Icon(icon, size: 20, color: cs.onSurfaceVariant),
-              if (!compact) ...[const SizedBox(width: 12), Text(label)],
+              if (!compact) ...[
+                const SizedBox(width: 12),
+                Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+              ],
             ],
           ),
         ),
