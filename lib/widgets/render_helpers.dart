@@ -61,38 +61,3 @@ class RenderCaptureBoundary extends RenderProxyBox {
     return data?.buffer.asUint8List();
   }
 }
-
-/// Desenha uma borda tracejada seguindo o contorno de [shape].
-class DashedBorderPainter extends CustomPainter {
-  DashedBorderPainter({
-    required this.shape,
-    required this.color,
-    required this.width,
-  });
-
-  final ShapeBorder shape;
-  final Color color;
-  final double width;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).deflate(width / 2);
-    final path = shape.getOuterPath(rect);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width;
-    const dash = 7.0, gap = 5.0;
-    for (final m in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + dash), paint);
-        d += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant DashedBorderPainter old) =>
-      old.color != color || old.width != width || old.shape != shape;
-}

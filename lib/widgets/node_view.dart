@@ -5,7 +5,7 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import '../media.dart';
 import '../models.dart';
 import 'markers.dart';
-import 'render_helpers.dart';
+import 'shapes.dart';
 
 /// Cores efetivas (com valores automáticos) de um nó.
 class NodeColors {
@@ -22,6 +22,8 @@ class NodeColors {
     final Color fill;
     if (n.shape == 'underline' || n.shape == 'plain') {
       fill = parseHex(n.fillColor) ?? Colors.transparent;
+    } else if (n.shape == 'sticky' && n.fillColor == null) {
+      fill = const Color(0xFFFFF176);
     } else {
       fill =
           parseHex(n.fillColor) ??
@@ -32,25 +34,6 @@ class NodeColors {
         ? const Color(0xFF15171F)
         : Colors.white;
     return NodeColors(branch, fill, parseHex(n.textColor) ?? autoText);
-  }
-}
-
-ShapeBorder shapeFor(String shape) {
-  switch (shape) {
-    case 'rounded':
-      return RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
-    case 'rect':
-      return RoundedRectangleBorder(borderRadius: BorderRadius.circular(3));
-    case 'ellipse':
-      return const OvalBorder();
-    case 'hexagon':
-      return BeveledRectangleBorder(borderRadius: BorderRadius.circular(18));
-    case 'underline':
-      return const RoundedRectangleBorder();
-    case 'plain':
-      return RoundedRectangleBorder(borderRadius: BorderRadius.circular(6));
-    default:
-      return const StadiumBorder();
   }
 }
 
@@ -68,7 +51,15 @@ class NodeView extends StatefulWidget {
     required this.onCancel,
     this.number = '',
     this.onBadgeTap,
+    this.fontFamily,
+    this.handDrawn = false,
   });
+
+  /// Fonte efetiva (a do tópico ou a do tema do mapa).
+  final String? fontFamily;
+
+  /// Contorno com aparência de desenho à mão.
+  final bool handDrawn;
 
   final MindMapNode node;
   final bool selected;
@@ -174,12 +165,15 @@ class _NodeViewState extends State<NodeView> {
     final n = widget.node;
     final cs = Theme.of(context).colorScheme;
     final colors = NodeColors.of(context, n);
+    final textBg = parseHex(n.highlight);
     final style = TextStyle(
       fontSize: n.fontSize,
       height: 1.25,
+      fontFamily: widget.fontFamily,
       fontWeight: n.bold ? FontWeight.w700 : FontWeight.w500,
       fontStyle: n.italic ? FontStyle.italic : FontStyle.normal,
       color: colors.text,
+      backgroundColor: textBg,
       decoration: TextDecoration.combine([
         if (n.underline) TextDecoration.underline,
         if (n.strike) TextDecoration.lineThrough,
@@ -189,6 +183,7 @@ class _NodeViewState extends State<NodeView> {
     final textAlign = switch (n.align) {
       'left' => TextAlign.left,
       'right' => TextAlign.right,
+      'justify' => TextAlign.justify,
       _ => TextAlign.center,
     };
     final maxW = n.maxWidth.clamp(80.0, 800.0);
@@ -420,70 +415,77 @@ class _NodeViewState extends State<NodeView> {
         (n.sticker != null || img != null || n.tags.isNotEmpty) &&
             n.shape == 'pill'
         ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))
-        : shapeFor(n.shape);
+        : shapeFor(n.shape, corner: n.corner);
     final highlight = widget.dropTarget
         ? cs.tertiary
         : widget.selected
         ? cs.primary
         : null;
 
-    final padding = isUnderline || isPlain
-        ? const EdgeInsets.fromLTRB(6, 4, 6, 6)
-        : n.shape == 'hexagon'
-        ? EdgeInsets.symmetric(
-            horizontal: widget.isRoot ? 32 : 24,
-            vertical: widget.isRoot ? 14 : 9,
-          )
-        : n.shape == 'ellipse'
-        ? EdgeInsets.symmetric(
-            horizontal: 26,
-            vertical: widget.isRoot ? 20 : 14,
-          )
-        : EdgeInsets.symmetric(
-            horizontal: widget.isRoot ? 24 : 16,
-            vertical: widget.isRoot ? 14 : 9,
-          );
+    final borderColor = parseHex(n.borderColor) ?? colors.branch;
+    final noBorder = n.borderStyle == 'none' || n.borderWidth <= 0;
+    final patterned = n.borderStyle == 'dashed' || n.borderStyle == 'dotted';
+    final padded = ShapePadding(
+      insets: (s) => shapeInsets(n.shape, s, root: widget.isRoot),
+      child: content,
+    );
 
     Widget box;
     if (isUnderline) {
-      box = Container(
-        padding: padding,
+      box = DecoratedBox(
         decoration: BoxDecoration(
           color: colors.fill,
-          border: Border(
-            bottom: BorderSide(color: colors.branch, width: n.borderWidth + 1),
-          ),
+          border: noBorder
+              ? null
+              : Border(
+                  bottom: BorderSide(
+                    color: borderColor,
+                    width: n.borderWidth + 1,
+                  ),
+                ),
         ),
-        child: content,
+        child: padded,
       );
     } else {
-      final side = n.dashed || isPlain
+      final customStroke =
+          !isPlain && !noBorder && (patterned || widget.handDrawn);
+      final side = isPlain || noBorder || customStroke
           ? BorderSide.none
-          : BorderSide(color: colors.branch, width: n.borderWidth);
-      box = Container(
-        padding: padding,
+          : BorderSide(color: borderColor, width: n.borderWidth);
+      box = DecoratedBox(
         decoration: ShapeDecoration(
           color: colors.fill,
           shape: shape is OutlinedBorder ? shape.copyWith(side: side) : shape,
-          shadows: widget.isRoot
+          shadows: widget.isRoot || n.shape == 'sticky'
               ? [
                   BoxShadow(
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+                    blurRadius: widget.isRoot ? 16 : 6,
+                    offset: widget.isRoot
+                        ? const Offset(0, 6)
+                        : const Offset(2, 3),
                     color: Colors.black.withValues(alpha: 0.18),
                   ),
                 ]
               : null,
         ),
-        child: content,
+        child: padded,
       );
-      if (n.dashed && !isPlain) {
+      if (customStroke) {
         box = CustomPaint(
-          foregroundPainter: DashedBorderPainter(
-            shape: shape,
-            color: colors.branch,
-            width: n.borderWidth,
-          ),
+          foregroundPainter: widget.handDrawn
+              ? SketchBorderPainter(
+                  shape: shape,
+                  color: borderColor,
+                  width: n.borderWidth,
+                  seed: n.id.hashCode,
+                  dashed: patterned,
+                )
+              : PatternBorderPainter(
+                  shape: shape,
+                  color: borderColor,
+                  width: n.borderWidth,
+                  dotted: n.borderStyle == 'dotted',
+                ),
           child: box,
         );
       }

@@ -14,6 +14,7 @@ import '../layout.dart';
 import '../models.dart';
 import 'node_view.dart';
 import 'render_helpers.dart';
+import 'shapes.dart';
 
 /// Tamanho da área de desenho; a origem (0,0) da cena fica no centro.
 const double kCanvasSize = 40000;
@@ -404,6 +405,8 @@ class MindMapCanvasState extends State<MindMapCanvas> {
                         : null,
                     dropTarget: _dropTarget == n.id || _fileDragNode == n.id,
                     number: doc.numbering ? doc.numberOf(n.id) : '',
+                    fontFamily: n.fontFamily ?? doc.fontFamily,
+                    handDrawn: doc.handDrawn,
                     onBadgeTap: widget.onBadgeTap == null
                         ? null
                         : (kind, pos) => widget.onBadgeTap!(n.id, kind, pos),
@@ -911,11 +914,16 @@ class _EdgesPainter extends CustomPainter {
 
       final kind = edgeKind(doc, parent, n);
       final depth = doc.depthOf(n.id);
+      final lineStyle = n.lineStyle ?? doc.connectorStyle;
       paint
+        ..style = PaintingStyle.stroke
         ..color = parseHex(n.color) ?? fallback
-        ..strokeWidth = math.max(1.2, doc.connectorWidth - (depth - 1) * 0.6);
+        ..strokeWidth =
+            n.lineWidth ??
+            math.max(1.2, doc.connectorWidth - (depth - 1) * 0.6);
       final pr = _rect(parent), cr = _rect(n);
-      final path = Path();
+      var path = Path();
+      var filled = false;
 
       switch (kind) {
         case 'v':
@@ -926,7 +934,7 @@ class _EdgesPainter extends CustomPainter {
           path
             ..moveTo(a.dx, a.dy)
             ..lineTo(a.dx, midY);
-          if (doc.connectorStyle == 'curved') {
+          if (lineStyle == 'curved' || lineStyle == 'tapered') {
             path.cubicTo(
               a.dx,
               midY + (b.dy - midY) * 0.5,
@@ -988,10 +996,35 @@ class _EdgesPainter extends CustomPainter {
             n.pos.dy + kOrigin.dy + (_low(n) ? cr.height / 2 : 0),
           );
           path.moveTo(start.dx, start.dy);
-          final style = kind == 'elbow' ? 'elbow' : doc.connectorStyle;
+          final style = kind == 'elbow' ? 'elbow' : lineStyle;
           switch (style) {
             case 'straight':
               path.lineTo(end.dx, end.dy);
+            case 'tapered':
+              // Ramo afunilado: grosso junto ao pai, fino na ponta.
+              final w0 = paint.strokeWidth * 2.4 + 1, w1 = 1.2;
+              final dx = (end.dx - start.dx) * 0.5;
+              path = Path()
+                ..moveTo(start.dx, start.dy - w0 / 2)
+                ..cubicTo(
+                  start.dx + dx,
+                  start.dy - w0 / 2,
+                  end.dx - dx,
+                  end.dy - w1 / 2,
+                  end.dx,
+                  end.dy - w1 / 2,
+                )
+                ..lineTo(end.dx, end.dy + w1 / 2)
+                ..cubicTo(
+                  end.dx - dx,
+                  end.dy + w1 / 2,
+                  start.dx + dx,
+                  start.dy + w0 / 2,
+                  start.dx,
+                  start.dy + w0 / 2,
+                )
+                ..close();
+              filled = true;
             case 'elbow':
               final midX = start.dx + (end.dx - start.dx) / 2;
               final r = math.min(12.0, (end.dy - start.dy).abs() / 2);
@@ -1013,7 +1046,14 @@ class _EdgesPainter extends CustomPainter {
               );
           }
       }
-      canvas.drawPath(path, paint);
+      if (filled) {
+        canvas.drawPath(path, paint..style = PaintingStyle.fill);
+      } else {
+        canvas.drawPath(
+          doc.handDrawn ? roughen(path, n.id.hashCode, amplitude: 1.8) : path,
+          paint,
+        );
+      }
     }
 
     // Resumos: chave ao lado de todos os subtópicos, com o texto.

@@ -20,21 +20,103 @@ const kFillPalette = <String>[
   ...kPalette,
 ];
 
+/// Preenchimento transparente ("Encher" desligado).
+const kNoFill = '#00000000';
+
 const kShapes = <String, String>{
-  'pill': 'Pílula',
-  'rounded': 'Arredondado',
   'rect': 'Retângulo',
+  'rounded': 'Arredondado',
+  'diamond': 'Losango',
+  'document': 'Documento',
+  'parallelogram': 'Paralelogramo',
+  'pill': 'Pílula',
   'ellipse': 'Elipse',
+  'circle': 'Círculo',
+  'process': 'Processo',
+  'internal': 'Armazenamento',
+  'cylinder': 'Cilindro',
+  'card': 'Cartão',
+  'dshape': 'Atraso',
+  'tab': 'Guia',
   'hexagon': 'Hexágono',
+  'octagon': 'Octógono',
+  'tag': 'Etiqueta',
+  'arrowRight': 'Seta para a direita',
+  'arrowLeft': 'Seta para a esquerda',
+  'arrowBoth': 'Seta dupla',
+  'speech': 'Balão de fala',
+  'star': 'Estrela',
+  'gem': 'Gema',
+  'cloud': 'Nuvem',
+  'sticky': 'Nota adesiva',
   'underline': 'Sublinhado',
   'plain': 'Só texto',
 };
+
+/// Cores de realce do texto (vazio = sem realce).
+const kHighlightColors = <String>[
+  '',
+  '#FFF59D',
+  '#C5E1A5',
+  '#B3E5FC',
+  '#F8BBD0',
+  '#FFCC80',
+  '#E1BEE7',
+];
+
+/// Formas em que o canto pode ser ajustado ("Canto").
+const kCornerShapes = {'rect', 'rounded', 'card', 'process', 'internal', 'tab'};
 
 const kConnectorStyles = <String, String>{
   'curved': 'Curvo',
   'straight': 'Reto',
   'elbow': 'Cotovelo',
+  'tapered': 'Afunilado',
 };
+
+/// Texturas de fundo do mapa.
+const kTextures = <String, String>{
+  'dots': 'Pontos',
+  'grid': 'Quadriculado',
+  'lines': 'Pautado',
+  'diagonal': 'Diagonal',
+  'paper': 'Papel',
+  'cross': 'Cruzes',
+};
+
+/// Formas de colorir os ramos ("Ramo colorido").
+const kColorModes = <String, String>{
+  'branch': 'Uma cor por ramo',
+  'single': 'Uma cor só',
+  'level': 'Uma cor por nível',
+  'rainbow': 'Arco-íris (preenchido)',
+};
+
+/// Estilos de borda do tópico.
+const kBorderStyles = <String, String>{
+  'solid': 'Contínua',
+  'dashed': 'Tracejada',
+  'dotted': 'Pontilhada',
+};
+
+/// Fontes oferecidas (instaladas no Windows e disponíveis nos navegadores).
+const kFonts = <String>[
+  'Segoe UI',
+  'Arial',
+  'Calibri',
+  'Cambria',
+  'Georgia',
+  'Times New Roman',
+  'Verdana',
+  'Tahoma',
+  'Trebuchet MS',
+  'Courier New',
+  'Consolas',
+  'Comic Sans MS',
+  'Segoe Print',
+  'Segoe Script',
+  'Impact',
+];
 
 const kLayouts = <String, String>{
   'balanced': 'Mapa balanceado',
@@ -52,6 +134,7 @@ const kAligns = <String, String>{
   'left': 'Esquerda',
   'center': 'Centro',
   'right': 'Direita',
+  'justify': 'Justificado',
 };
 
 /// Comentário deixado num tópico.
@@ -790,7 +873,13 @@ class MindMapNode {
     this.bold = false,
     this.italic = false,
     this.borderWidth = 1.5,
-    this.dashed = false,
+    this.borderStyle = 'solid',
+    this.borderColor,
+    this.corner,
+    this.fontFamily,
+    this.highlight,
+    this.lineStyle,
+    this.lineWidth,
     this.collapsed = false,
     List<NodeLink>? links,
     List<NodeAttachment>? attachments,
@@ -836,7 +925,30 @@ class MindMapNode {
   bool bold;
   bool italic;
   double borderWidth;
-  bool dashed;
+
+  /// Estilo da borda: 'solid', 'dashed', 'dotted' ou 'none' (sem borda).
+  String borderStyle;
+
+  bool get dashed => borderStyle == 'dashed';
+  set dashed(bool v) => borderStyle = v ? 'dashed' : 'solid';
+
+  /// Cor da borda (nulo = cor do ramo).
+  String? borderColor;
+
+  /// Raio dos cantos nas formas retangulares (nulo = padrão da forma).
+  double? corner;
+
+  /// Fonte do texto (nulo = fonte do tema do mapa).
+  String? fontFamily;
+
+  /// Cor de realce (marca-texto) atrás do texto.
+  String? highlight;
+
+  /// Estilo e espessura da linha que liga este tópico ao pai
+  /// (nulo = padrão do mapa).
+  String? lineStyle;
+  double? lineWidth;
+
   bool collapsed;
   List<NodeLink> links;
   List<NodeAttachment> attachments;
@@ -885,6 +997,51 @@ class MindMapNode {
 
   bool get hasLink => links.any((l) => l.url.trim().isNotEmpty);
 
+  /// Campos de aparência (pincel de formato, aplicar ao ramo ou ao nível).
+  Map<String, dynamic> styleJson() => {
+    'color': color,
+    'fillColor': fillColor,
+    'textColor': textColor,
+    'shape': shape,
+    'fontSize': fontSize,
+    'bold': bold,
+    'italic': italic,
+    'underline': underline,
+    'strike': strike,
+    'align': align,
+    'borderWidth': borderWidth,
+    'borderStyle': borderStyle,
+    'borderColor': borderColor,
+    'corner': corner,
+    'fontFamily': fontFamily,
+    'highlight': highlight,
+    'lineStyle': lineStyle,
+    'lineWidth': lineWidth,
+  };
+
+  /// Aplica um estilo copiado com [styleJson]. Sem [includeColor], mantém
+  /// a cor do ramo deste tópico.
+  void applyStyleJson(Map<String, dynamic> s, {bool includeColor = true}) {
+    if (includeColor) color = (s['color'] as String?) ?? color;
+    fillColor = s['fillColor'] as String?;
+    textColor = s['textColor'] as String?;
+    shape = kShapes.containsKey(s['shape']) ? s['shape'] as String : shape;
+    fontSize = ((s['fontSize'] as num?) ?? fontSize).toDouble();
+    bold = (s['bold'] as bool?) ?? false;
+    italic = (s['italic'] as bool?) ?? false;
+    underline = (s['underline'] as bool?) ?? false;
+    strike = (s['strike'] as bool?) ?? false;
+    align = kAligns.containsKey(s['align']) ? s['align'] as String : 'center';
+    borderWidth = ((s['borderWidth'] as num?) ?? borderWidth).toDouble();
+    borderStyle = (s['borderStyle'] as String?) ?? 'solid';
+    borderColor = s['borderColor'] as String?;
+    corner = (s['corner'] as num?)?.toDouble();
+    fontFamily = s['fontFamily'] as String?;
+    highlight = s['highlight'] as String?;
+    lineStyle = s['lineStyle'] as String?;
+    lineWidth = (s['lineWidth'] as num?)?.toDouble();
+  }
+
   /// Valor do marcador do grupo [group], se houver.
   String? marker(String group) {
     for (final m in markers) {
@@ -918,7 +1075,13 @@ class MindMapNode {
     'bold': bold,
     'italic': italic,
     'borderWidth': borderWidth,
-    'dashed': dashed,
+    if (borderStyle != 'solid') 'borderStyle': borderStyle,
+    if (borderColor != null) 'borderColor': borderColor,
+    if (corner != null) 'corner': corner,
+    if (fontFamily != null) 'fontFamily': fontFamily,
+    if (highlight != null) 'highlight': highlight,
+    if (lineStyle != null) 'lineStyle': lineStyle,
+    if (lineWidth != null) 'lineWidth': lineWidth,
     'collapsed': collapsed,
     if (links.isNotEmpty) 'links': links.map((e) => e.toJson()).toList(),
     'attachments': attachments.map((e) => e.toJson()).toList(),
@@ -955,7 +1118,6 @@ class MindMapNode {
     var shape = (j['shape'] as String?) ?? 'pill';
     // Compatibilidade com o formato antigo.
     if (shape == 'label') shape = 'underline';
-    if (shape == 'circle') shape = 'ellipse';
     if (!kShapes.containsKey(shape)) shape = 'pill';
     return MindMapNode(
       id: j['id'] as String,
@@ -974,7 +1136,18 @@ class MindMapNode {
       bold: (j['bold'] as bool?) ?? false,
       italic: (j['italic'] as bool?) ?? false,
       borderWidth: ((j['borderWidth'] as num?) ?? 1.5).toDouble(),
-      dashed: (j['dashed'] as bool?) ?? (j['borderStyle'] == 'dashed'),
+      borderStyle: switch (j['borderStyle']) {
+        final String s when s == 'none' || kBorderStyles.containsKey(s) => s,
+        _ => j['dashed'] == true ? 'dashed' : 'solid',
+      },
+      borderColor: nonEmpty(j['borderColor']),
+      corner: (j['corner'] as num?)?.toDouble(),
+      fontFamily: nonEmpty(j['fontFamily']),
+      highlight: nonEmpty(j['highlight']),
+      lineStyle: kConnectorStyles.containsKey(j['lineStyle'])
+          ? j['lineStyle'] as String
+          : null,
+      lineWidth: (j['lineWidth'] as num?)?.toDouble(),
       collapsed: (j['collapsed'] as bool?) ?? false,
       links: [
         // Formato antigo: um único link em texto.
@@ -1034,6 +1207,15 @@ class MindMapDoc {
     this.deletedAt,
     this.customPalette,
     List<NodeRelation>? relations,
+    this.fontFamily,
+    this.handDrawn = false,
+    this.texture,
+    this.backgroundImage,
+    this.watermark,
+    this.colorMode = 'branch',
+    this.alignLevels = false,
+    this.allowOverlap = false,
+    this.relationsOnTop = true,
   }) : relations = relations ?? [];
 
   static const formatVersion = 3;
@@ -1079,6 +1261,33 @@ class MindMapDoc {
 
   /// Paleta gerada pelo usuário (tema "Personalizado", themeId = 'custom').
   List<String>? customPalette;
+
+  /// Fonte de todos os tópicos (nulo = fonte padrão do app).
+  String? fontFamily;
+
+  /// Linhas e bordas com aparência de desenho à mão.
+  bool handDrawn;
+
+  /// Textura do fundo (ver [kTextures]); nula = lisa.
+  String? texture;
+
+  /// Imagem de fundo (PNG/JPEG em base64).
+  String? backgroundImage;
+
+  /// Texto de marca d'água repetido sobre o mapa.
+  String? watermark;
+
+  /// Como os ramos são coloridos (ver [kColorModes]).
+  String colorMode;
+
+  /// Alinha os tópicos do mesmo nível em colunas.
+  bool alignLevels;
+
+  /// Permite que tópicos fiquem um sobre o outro (não afasta).
+  bool allowOverlap;
+
+  /// Relações desenhadas por cima dos tópicos (ou por baixo).
+  bool relationsOnTop;
 
   MindMapNode get root => nodes[rootId]!;
 
@@ -1222,6 +1431,15 @@ class MindMapDoc {
     if (starred) 'starred': true,
     if (deletedAt != null) 'deletedAt': deletedAt,
     if (customPalette != null) 'customPalette': customPalette,
+    if (fontFamily != null) 'fontFamily': fontFamily,
+    if (handDrawn) 'handDrawn': true,
+    if (texture != null) 'texture': texture,
+    if (backgroundImage != null) 'backgroundImage': backgroundImage,
+    if (watermark != null) 'watermark': watermark,
+    if (colorMode != 'branch') 'colorMode': colorMode,
+    if (alignLevels) 'alignLevels': true,
+    if (allowOverlap) 'allowOverlap': true,
+    if (!relationsOnTop) 'relationsOnTop': false,
     'nodes': nodes.map((k, v) => MapEntry(k, v.toJson())),
     if (relations.isNotEmpty)
       'relations': relations.map((r) => r.toJson()).toList(),
@@ -1285,8 +1503,24 @@ class MindMapDoc {
       numbering: (j['numbering'] as bool?) ?? false,
       starred: (j['starred'] as bool?) ?? false,
       deletedAt: (j['deletedAt'] as num?)?.toInt(),
+      fontFamily: str(j['fontFamily']),
+      handDrawn: (j['handDrawn'] as bool?) ?? false,
+      texture: kTextures.containsKey(j['texture'])
+          ? j['texture'] as String
+          : null,
+      backgroundImage: str(j['backgroundImage']),
+      watermark: str(j['watermark']),
+      colorMode: kColorModes.containsKey(j['colorMode'])
+          ? j['colorMode'] as String
+          : 'branch',
+      alignLevels: (j['alignLevels'] as bool?) ?? false,
+      allowOverlap: (j['allowOverlap'] as bool?) ?? false,
+      relationsOnTop: (j['relationsOnTop'] as bool?) ?? true,
     );
   }
+
+  static String? str(Object? v) =>
+      v is String && v.trim().isNotEmpty ? v : null;
 
   MindMapDoc clone() => fromJson(toJson());
 }

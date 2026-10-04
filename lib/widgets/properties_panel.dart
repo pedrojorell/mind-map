@@ -5,7 +5,7 @@ import '../models.dart';
 import 'elements_panel.dart';
 import 'markers.dart';
 import 'media_panel.dart';
-import 'node_view.dart';
+import 'shapes.dart';
 
 /// Abas do painel lateral do editor.
 enum PanelTab {
@@ -116,6 +116,13 @@ class PropertiesPanel extends StatelessWidget {
 
   List<Widget> _styleTab(BuildContext context, MindMapNode n) {
     final id = n.id;
+    final doc = editor.doc;
+    void up(void Function(MindMapNode n) fn, {bool relayout = false}) =>
+        editor.updateNode(id, fn, relayout: relayout);
+    final palette = {...doc.theme.palette, ...kPalette}.toList();
+    final fillOn = n.fillColor != kNoFill;
+    final borderOn = n.borderStyle != 'none' && n.borderWidth > 0;
+    final customWidth = n.maxWidth != 300;
     return [
       CommitTextField(
         key: ValueKey('text_$id'),
@@ -123,152 +130,243 @@ class PropertiesPanel extends StatelessWidget {
         label: 'Texto',
         maxLines: 3,
         onCommit: (v) {
-          if (v.trim().isNotEmpty) {
-            editor.updateNode(id, (n) => n.text = v.trim(), relayout: true);
-          }
+          if (v.trim().isNotEmpty) up((n) => n.text = v.trim(), relayout: true);
         },
       ),
       _Section('Fonte'),
       Row(
         children: [
+          Expanded(
+            child: FontPicker(
+              value: n.fontFamily,
+              mapFont: doc.fontFamily,
+              onChanged: (f) => up((n) => n.fontFamily = f, relayout: true),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FontSizeStepper(
+            value: n.fontSize,
+            onChanged: (v) => up((n) => n.fontSize = v, relayout: true),
+          ),
+        ],
+      ),
+      const SizedBox(height: 4),
+      Wrap(
+        children: [
           _Toggle(
             tip: 'Negrito',
             icon: Icons.format_bold,
             on: n.bold,
-            onTap: () =>
-                editor.updateNode(id, (n) => n.bold = !n.bold, relayout: true),
+            onTap: () => up((n) => n.bold = !n.bold, relayout: true),
           ),
           _Toggle(
             tip: 'Itálico',
             icon: Icons.format_italic,
             on: n.italic,
-            onTap: () => editor.updateNode(
-              id,
-              (n) => n.italic = !n.italic,
-              relayout: true,
-            ),
+            onTap: () => up((n) => n.italic = !n.italic, relayout: true),
           ),
           _Toggle(
             tip: 'Sublinhado',
             icon: Icons.format_underline,
             on: n.underline,
-            onTap: () =>
-                editor.updateNode(id, (n) => n.underline = !n.underline),
+            onTap: () => up((n) => n.underline = !n.underline),
           ),
           _Toggle(
             tip: 'Tachado',
             icon: Icons.format_strikethrough,
             on: n.strike,
-            onTap: () => editor.updateNode(id, (n) => n.strike = !n.strike),
+            onTap: () => up((n) => n.strike = !n.strike),
           ),
-        ],
-      ),
-      Row(
-        children: [
           for (final a in const [
             ('left', Icons.format_align_left),
             ('center', Icons.format_align_center),
             ('right', Icons.format_align_right),
+            ('justify', Icons.format_align_justify),
           ])
             _Toggle(
               tip: kAligns[a.$1]!,
               icon: a.$2,
               on: n.align == a.$1,
-              onTap: () => editor.updateNode(id, (n) => n.align = a.$1),
+              onTap: () => up((n) => n.align = a.$1),
             ),
-          const Spacer(),
-          FontSizeStepper(
-            value: n.fontSize,
-            onChanged: (v) =>
-                editor.updateNode(id, (n) => n.fontSize = v, relayout: true),
-          ),
         ],
       ),
-      Row(
-        children: [
-          Expanded(
-            child: _SliderRow(
-              label: 'Largura',
-              value: n.maxWidth,
-              min: 80,
-              max: 800,
-              divisions: 36,
-              onChanged: (v) =>
-                  editor.updateNode(id, (n) => n.maxWidth = v, relayout: true),
-            ),
-          ),
-        ],
-      ),
-      _Section('Cor do texto'),
+      _Label('Cor do texto'),
       ColorRow(
         colors: const ['', '#FFFFFF', '#15171F', ...kPalette],
         selected: n.textColor ?? '',
-        onPick: (c) =>
-            editor.updateNode(id, (n) => n.textColor = c.isEmpty ? null : c),
+        onPick: (c) => up((n) => n.textColor = c.isEmpty ? null : c),
       ),
-      _Section('Formato'),
+      _Label('Realce (marca-texto)'),
+      ColorRow(
+        colors: kHighlightColors,
+        selected: n.highlight ?? '',
+        onPick: (c) => up((n) => n.highlight = c.isEmpty ? null : c),
+      ),
+      _Section('Tópico'),
+      _Label('Formato'),
       ShapeGrid(
         selected: n.shape,
-        onPick: (s) =>
-            editor.updateNode(id, (n) => n.shape = s, relayout: true),
+        onPick: (s) => up((n) => n.shape = s, relayout: true),
       ),
-      _Section('Preenchimento'),
-      ColorRow(
-        colors: kFillPalette,
-        selected: n.fillColor ?? '',
-        onPick: (c) =>
-            editor.updateNode(id, (n) => n.fillColor = c.isEmpty ? null : c),
-      ),
-      _Section('Borda e ramo'),
-      ColorRow(
-        colors: {...editor.doc.theme.palette, ...kPalette}.toList(),
-        selected: n.color,
-        onPick: (c) => editor.updateNode(id, (n) => n.color = c),
-      ),
-      const SizedBox(height: 6),
-      Row(
-        children: [
-          _Toggle(
-            tip: 'Borda tracejada',
-            icon: Icons.line_style,
-            on: n.dashed,
-            onTap: () => editor.updateNode(id, (n) => n.dashed = !n.dashed),
-          ),
-          Expanded(
-            child: _SliderRow(
-              label: 'Espessura',
-              value: n.borderWidth,
-              min: 0,
-              max: 6,
-              divisions: 12,
-              onChanged: (v) => editor.updateNode(id, (n) => n.borderWidth = v),
+      if (kCornerShapes.contains(n.shape)) ...[
+        _Label('Canto'),
+        SegmentedButton<double>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: 0, label: Text('Reto')),
+            ButtonSegment(value: 6, label: Text('Suave')),
+            ButtonSegment(value: 12, label: Text('Médio')),
+            ButtonSegment(value: 24, label: Text('Redondo')),
+          ],
+          selected: {
+            _nearestCorner(
+              n.corner ??
+                  (n.shape == 'rounded'
+                      ? 12
+                      : n.shape == 'card'
+                      ? 12
+                      : 0),
             ),
-          ),
-        ],
+          },
+          onSelectionChanged: (s) =>
+              up((n) => n.corner = s.first, relayout: true),
+        ),
+      ],
+      _Check(
+        label: 'Encher',
+        value: fillOn,
+        onChanged: (v) => up((n) => n.fillColor = v ? null : kNoFill),
       ),
-      const SizedBox(height: 8),
+      if (fillOn)
+        ColorRow(
+          colors: kFillPalette,
+          selected: n.fillColor ?? '',
+          onPick: (c) => up((n) => n.fillColor = c.isEmpty ? null : c),
+        ),
+      _Check(
+        label: 'Borda',
+        value: borderOn,
+        onChanged: (v) => up((n) {
+          n.borderStyle = v ? 'solid' : 'none';
+          if (v && n.borderWidth <= 0) n.borderWidth = 1.5;
+        }),
+      ),
+      if (borderOn) ...[
+        ColorRow(
+          colors: ['', ...palette],
+          selected: n.borderColor ?? '',
+          onPick: (c) => up((n) => n.borderColor = c.isEmpty ? null : c),
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            for (final e in kBorderStyles.entries)
+              ButtonSegment(value: e.key, label: Text(e.value)),
+          ],
+          selected: {
+            kBorderStyles.containsKey(n.borderStyle) ? n.borderStyle : 'solid',
+          },
+          onSelectionChanged: (s) => up((n) => n.borderStyle = s.first),
+        ),
+        _SliderRow(
+          label: 'Espessura',
+          value: n.borderWidth,
+          min: 0.5,
+          max: 6,
+          divisions: 11,
+          onChanged: (v) => up((n) => n.borderWidth = v),
+        ),
+      ],
+      _Check(
+        label: 'Personalizar largura',
+        value: customWidth,
+        onChanged: (v) => up((n) => n.maxWidth = v ? 200 : 300, relayout: true),
+      ),
+      if (customWidth)
+        _SliderRow(
+          label: 'Largura',
+          value: n.maxWidth,
+          min: 80,
+          max: 800,
+          divisions: 36,
+          onChanged: (v) => up((n) => n.maxWidth = v, relayout: true),
+        ),
+      if (n.parentId != null) ...[
+        _Section('Ramificação'),
+        DropdownButtonFormField<String>(
+          key: ValueKey('line_${n.id}_${n.lineStyle}'),
+          initialValue: n.lineStyle ?? '',
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Estilo do conector',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem(
+              value: '',
+              child: Text(
+                'Igual ao mapa (${kConnectorStyles[doc.connectorStyle]})',
+              ),
+            ),
+            for (final e in kConnectorStyles.entries)
+              DropdownMenuItem(value: e.key, child: Text(e.value)),
+          ],
+          onChanged: (v) =>
+              up((n) => n.lineStyle = v == null || v.isEmpty ? null : v),
+        ),
+        _Label('Cor da linha'),
+        ColorRow(
+          colors: palette,
+          selected: n.color,
+          onPick: (c) => up((n) => n.color = c),
+        ),
+        _SliderRow(
+          label: 'Peso',
+          value: n.lineWidth ?? doc.connectorWidth,
+          min: 0.5,
+          max: 10,
+          divisions: 19,
+          onChanged: (v) => up((n) => n.lineWidth = v),
+        ),
+      ],
+      const SizedBox(height: 12),
       OutlinedButton.icon(
         icon: const Icon(Icons.format_paint_outlined, size: 18),
-        label: const Text('Aplicar estilo a todo o ramo'),
+        label: const Text('Aplicar a todo o ramo'),
         onPressed: n.childrenIds.isEmpty
             ? null
             : () {
-                final src = n;
+                final style = n.styleJson();
                 editor.updateBranch(id, (m) {
-                  m.color = src.color;
-                  if (m.id != src.id) {
-                    m
-                      ..fillColor = src.fillColor
-                      ..textColor = src.textColor
-                      ..shape = src.shape
-                      ..dashed = src.dashed
-                      ..borderWidth = src.borderWidth;
-                  }
+                  m.color = n.color;
+                  if (m.id != id) m.applyStyleJson(style, includeColor: false);
                 });
               },
       ),
+      const SizedBox(height: 6),
+      OutlinedButton.icon(
+        icon: const Icon(Icons.align_horizontal_left, size: 18),
+        label: const Text('Aplicar aos tópicos do mesmo nível'),
+        onPressed: () => editor.applyStyleToLevel(id),
+      ),
+      const SizedBox(height: 6),
+      TextButton.icon(
+        icon: const Icon(Icons.restart_alt, size: 18),
+        label: const Text('Redefinir estilo'),
+        onPressed: () => editor.resetStyle(id),
+      ),
     ];
   }
+
+  static double _nearestCorner(double v) => const [
+    0.0,
+    6.0,
+    12.0,
+    24.0,
+  ].reduce((a, b) => (a - v).abs() <= (b - v).abs() ? a : b);
 
   // -------------------------------------------------------------------- mapa
 
@@ -504,6 +602,92 @@ class _Section extends StatelessWidget {
   );
 }
 
+/// Rótulo pequeno acima de um controle.
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 10, bottom: 6),
+    child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+  );
+}
+
+/// Caixa de seleção compacta ("Encher", "Borda"…).
+class _Check extends StatelessWidget {
+  const _Check({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => CheckboxListTile(
+    contentPadding: EdgeInsets.zero,
+    dense: true,
+    visualDensity: VisualDensity.compact,
+    controlAffinity: ListTileControlAffinity.leading,
+    title: Text(label),
+    value: value,
+    onChanged: (v) => onChanged(v ?? false),
+  );
+}
+
+/// Escolha da fonte (cada opção aparece na própria fonte).
+class FontPicker extends StatelessWidget {
+  const FontPicker({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.mapFont,
+    this.defaultLabel,
+  });
+
+  final String? value;
+  final String? mapFont;
+  final ValueChanged<String?> onChanged;
+
+  /// Texto da opção "padrão" (sem fonte própria).
+  final String? defaultLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey('font_$value'),
+      initialValue: value ?? '',
+      isExpanded: true,
+      decoration: const InputDecoration(
+        isDense: true,
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+      items: [
+        DropdownMenuItem(
+          value: '',
+          child: Text(
+            defaultLabel ?? 'Fonte do mapa (${mapFont ?? 'padrão'})',
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        for (final f in kFonts)
+          DropdownMenuItem(
+            value: f,
+            child: Text(
+              f,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontFamily: f),
+            ),
+          ),
+      ],
+      onChanged: (v) => onChanged(v == null || v.isEmpty ? null : v),
+    );
+  }
+}
+
 class _Toggle extends StatelessWidget {
   const _Toggle({
     required this.tip,
@@ -636,14 +820,18 @@ class _ShapePreview extends StatelessWidget {
     // Na miniatura, o chanfro padrão do hexágono viraria um losango.
     final s = shape == 'hexagon'
         ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(8))
-        : shapeFor(shape);
-    return Container(
+        : shapeFor(shape, corner: shape == 'card' ? 6 : null);
+    final box = Container(
       decoration: ShapeDecoration(
+        color: shape == 'sticky' ? const Color(0xFFFFF176) : null,
         shape: s is OutlinedBorder
-            ? s.copyWith(side: BorderSide(color: color, width: 1.5))
+            ? s.copyWith(side: BorderSide(color: color, width: 1.4))
             : s,
       ),
     );
+    return shape == 'circle'
+        ? Center(child: AspectRatio(aspectRatio: 1, child: box))
+        : box;
   }
 }
 

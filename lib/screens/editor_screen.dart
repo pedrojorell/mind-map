@@ -217,6 +217,45 @@ class _EditorScreenState extends State<EditorScreen> {
     editor.addFloating(c + const Offset(0, 120));
   }
 
+  void _addTextBox() {
+    final c = canvas?.viewportCenterScene ?? Offset.zero;
+    editor.addTextBox(c + const Offset(-160, 140));
+  }
+
+  void _addStickyNote() {
+    final c = canvas?.viewportCenterScene ?? Offset.zero;
+    editor.addStickyNote(c + const Offset(180, 140));
+  }
+
+  /// Botão "Formato" com a galeria de formas.
+  Widget _shapeButton(MindMapNode? sel) => RibbonButton(
+    icon: Icons.category_outlined,
+    label: 'Formato',
+    onTap: null,
+    enabled: sel != null,
+    menu: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        child: SizedBox(
+          width: 340,
+          child: ShapeGrid(
+            selected: sel?.shape ?? '',
+            onPick: (s) {
+              if (sel != null) {
+                editor.updateNode(sel.id, (n) => n.shape = s, relayout: true);
+              }
+            },
+          ),
+        ),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.sticky_note_2_outlined, size: 18),
+        onPressed: () => _run(_addStickyNote),
+        child: const Text('Nova nota adesiva'),
+      ),
+    ],
+  );
+
   void _startRelation() {
     if (editor.selectedId == null) {
       _snack('Selecione o tópico de origem da relação.');
@@ -1704,32 +1743,49 @@ class _EditorScreenState extends State<EditorScreen> {
           tip: 'Ligar dois tópicos com uma seta (Ctrl+R)',
           onTap: hasSel ? _startRelation : null,
         ),
+        _shapeButton(sel),
         RibbonButton(
-          icon: Icons.category_outlined,
-          label: 'Formato',
-          onTap: null,
-          enabled: hasSel,
-          menu: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: SizedBox(
-                width: 250,
-                child: ShapeGrid(
-                  selected: sel?.shape ?? '',
-                  onPick: (s) {
-                    if (sel != null) {
-                      editor.updateNode(
-                        sel.id,
-                        (n) => n.shape = s,
-                        relayout: true,
-                      );
-                    }
-                  },
-                ),
-              ),
-            ),
-          ],
+          icon: Icons.text_fields,
+          label: 'Caixa de texto',
+          tip: 'Texto solto no mapa, sem borda',
+          onTap: () => _run(_addTextBox),
         ),
+        RibbonButton(
+          icon: Icons.sticky_note_2_outlined,
+          label: 'Nota adesiva',
+          onTap: () => _run(_addStickyNote),
+        ),
+        RibbonButton(
+          icon: Icons.chat_bubble_outline,
+          label: 'Balão',
+          tip: 'Balão de observação acima do tópico',
+          onTap: () => _element((n) => n.callouts.add('Observação')),
+        ),
+        RibbonButton(
+          icon: Icons.crop_free,
+          label: 'Limite',
+          tip: 'Contorno em volta do ramo',
+          active: sel?.boundary ?? false,
+          onTap: () => _element((n) => n.boundary = !n.boundary),
+        ),
+        RibbonButton(
+          icon: Icons.data_array,
+          label: 'Resumo',
+          tip: 'Chave resumindo os subtópicos',
+          active: sel?.summary != null,
+          onTap: sel == null || sel.childrenIds.isEmpty
+              ? null
+              : () => _element(
+                  (n) => n.summary = n.summary == null ? 'Resumo' : null,
+                ),
+        ),
+        RibbonButton(
+          icon: Icons.find_replace,
+          label: 'Achar e substituir',
+          tip: 'Localizar e substituir (Ctrl+H)',
+          onTap: _findReplace,
+        ),
+        const RibbonDivider(),
         RibbonButton(
           icon: Icons.format_paint_outlined,
           label: 'Estilo',
@@ -1820,6 +1876,16 @@ class _EditorScreenState extends State<EditorScreen> {
           icon: Icons.bubble_chart_outlined,
           label: 'Flutuante',
           onTap: () => _run(_addFloating),
+        ),
+        RibbonButton(
+          icon: Icons.text_fields,
+          label: 'Caixa de texto',
+          onTap: () => _run(_addTextBox),
+        ),
+        RibbonButton(
+          icon: Icons.sticky_note_2_outlined,
+          label: 'Nota adesiva',
+          onTap: () => _run(_addStickyNote),
         ),
         const RibbonDivider(),
         RibbonButton(

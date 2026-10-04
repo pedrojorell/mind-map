@@ -119,6 +119,15 @@ class EditorController extends ChangeNotifier {
       ..relations = r.relations
       ..numbering = r.numbering
       ..customPalette = r.customPalette
+      ..fontFamily = r.fontFamily
+      ..handDrawn = r.handDrawn
+      ..texture = r.texture
+      ..backgroundImage = r.backgroundImage
+      ..watermark = r.watermark
+      ..colorMode = r.colorMode
+      ..alignLevels = r.alignLevels
+      ..allowOverlap = r.allowOverlap
+      ..relationsOnTop = r.relationsOnTop
       ..touch();
     if (selectedId != null && !doc.nodes.containsKey(selectedId)) {
       selectedId = doc.rootId;
@@ -481,6 +490,7 @@ class EditorController extends ChangeNotifier {
     Offset scenePos, {
     String text = 'Tópico flutuante',
     bool edit = true,
+    void Function(MindMapNode n)? configure,
   }) {
     if (_blocked()) return '';
     final n = MindMapNode(
@@ -490,6 +500,7 @@ class EditorController extends ChangeNotifier {
       color: '#00B8D4',
       shape: 'rounded',
     );
+    configure?.call(n);
     mutate(() => doc.nodes[n.id] = n);
     if (edit) {
       startEditing(n.id, true);
@@ -498,6 +509,31 @@ class EditorController extends ChangeNotifier {
     }
     return n.id;
   }
+
+  /// Caixa de texto solta no mapa (sem borda nem fundo).
+  String addTextBox(Offset scenePos) => addFloating(
+    scenePos,
+    text: 'Caixa de texto',
+    configure: (n) => n
+      ..shape = 'plain'
+      ..color = '#78909C'
+      ..align = 'left'
+      ..maxWidth = 260,
+  );
+
+  /// Nota adesiva amarela solta no mapa.
+  String addStickyNote(Offset scenePos) => addFloating(
+    scenePos,
+    text: 'Nota',
+    configure: (n) => n
+      ..shape = 'sticky'
+      ..color = '#F9A825'
+      ..textColor = '#3E2723'
+      ..borderStyle = 'none'
+      ..align = 'left'
+      ..maxWidth = 180
+      ..fontSize = 15,
+  );
 
   /// Exclui todos os tópicos selecionados.
   void deleteSelection() {
@@ -577,26 +613,10 @@ class EditorController extends ChangeNotifier {
 
   // ------------------------------------------------------ pincel de formato
 
-  static const _styleKeys = [
-    'color',
-    'fillColor',
-    'textColor',
-    'shape',
-    'fontSize',
-    'bold',
-    'italic',
-    'borderWidth',
-    'dashed',
-    'underline',
-    'strike',
-    'align',
-  ];
-
   void copyStyle([String? id]) {
     final n = doc.nodes[id ?? selectedId ?? ''];
     if (n == null) return;
-    final j = n.toJson();
-    copiedStyle = {for (final k in _styleKeys) k: j[k]};
+    copiedStyle = n.styleJson();
     notifyListeners();
   }
 
@@ -605,21 +625,64 @@ class EditorController extends ChangeNotifier {
     final st = copiedStyle;
     final target = id ?? selectedId;
     if (st == null || target == null) return;
+    updateNode(target, (n) => n.applyStyleJson(st), relayout: true);
+  }
+
+  /// Copia o estilo do tópico para todos os tópicos do mesmo nível
+  /// (cada um mantém a cor do próprio ramo).
+  int applyStyleToLevel([String? id]) {
+    final src = doc.nodes[id ?? selectedId ?? ''];
+    if (src == null) return 0;
+    final depth = doc.depthOf(src.id);
+    final style = src.styleJson();
+    final targets = doc.nodes.values
+        .where((n) => n.id != src.id && doc.depthOf(n.id) == depth)
+        .toList();
+    if (targets.isEmpty) return 0;
+    mutate(() {
+      for (final n in targets) {
+        n.applyStyleJson(style, includeColor: false);
+      }
+    }, relayout: true);
+    return targets.length;
+  }
+
+  /// Volta o tópico (ou a seleção) ao estilo padrão do seu nível.
+  void resetStyle([String? id]) {
+    final target = id ?? selectedId;
+    if (target == null) return;
+    final t = doc.theme;
     updateNode(target, (n) {
+      final isRoot = n.id == doc.rootId;
+      final depth = doc.depthOf(n.id);
       n
-        ..color = (st['color'] as String?) ?? n.color
-        ..fillColor = st['fillColor'] as String?
-        ..textColor = st['textColor'] as String?
-        ..shape = (st['shape'] as String?) ?? n.shape
-        ..fontSize = ((st['fontSize'] as num?) ?? n.fontSize).toDouble()
-        ..bold = (st['bold'] as bool?) ?? false
-        ..italic = (st['italic'] as bool?) ?? false
-        ..borderWidth = ((st['borderWidth'] as num?) ?? n.borderWidth)
-            .toDouble()
-        ..dashed = (st['dashed'] as bool?) ?? false
-        ..underline = (st['underline'] as bool?) ?? false
-        ..strike = (st['strike'] as bool?) ?? false
-        ..align = (st['align'] as String?) ?? 'center';
+        ..fillColor = isRoot ? t.rootFill : null
+        ..textColor = isRoot ? t.rootText : null
+        ..shape = isRoot || n.parentId == null
+            ? 'rounded'
+            : depth == 1
+            ? 'pill'
+            : 'underline'
+        ..fontSize = isRoot
+            ? 22
+            : depth == 1
+            ? 17
+            : 15
+        ..bold = isRoot
+        ..italic = false
+        ..underline = false
+        ..strike = false
+        ..align = 'center'
+        ..maxWidth = 300
+        ..borderWidth = isRoot ? 2 : 1.5
+        ..borderStyle = 'solid'
+        ..borderColor = null
+        ..corner = null
+        ..fontFamily = null
+        ..highlight = null
+        ..lineStyle = null
+        ..lineWidth = null;
+      if (isRoot) n.color = t.rootFill;
     }, relayout: true);
   }
 
