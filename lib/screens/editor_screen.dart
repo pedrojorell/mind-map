@@ -19,6 +19,7 @@ import '../widgets/ribbon.dart';
 import '../widgets/web_dialogs.dart';
 import '../widgets/app_dialogs.dart';
 import '../widgets/brand.dart';
+import '../widgets/license_dialog.dart';
 
 enum _RibbonTab { home, insert, design, view }
 
@@ -89,7 +90,36 @@ class _EditorScreenState extends State<EditorScreen> {
   void initState() {
     super.initState();
     editor.addListener(_onEditorChanged);
+    editor.onReadOnly = _onReadOnly;
     _lastSelected = editor.selectedId;
+  }
+
+  DateTime? _readOnlyNoticeAt;
+
+  /// Uma alteração foi bloqueada: o teste grátis terminou.
+  void _onReadOnly() {
+    final now = DateTime.now();
+    final last = _readOnlyNoticeAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 3)) {
+      return;
+    }
+    _readOnlyNoticeAt = now;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          width: 520,
+          content: const Text(
+            'Modo leitura: o teste grátis terminou. Ative a licença para editar.',
+          ),
+          action: SnackBarAction(
+            label: 'Ativar',
+            onPressed: () => showLicenseDialog(context, widget.library),
+          ),
+        ),
+      );
   }
 
   @override
@@ -998,12 +1028,15 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: editor,
+      listenable: Listenable.merge([editor, widget.library]),
       builder: (context, _) {
         final wide = MediaQuery.sizeOf(context).width >= 760;
         final cs = Theme.of(context).colorScheme;
-        Widget panel({VoidCallback? onClose}) =>
-            PropertiesPanel(editor: editor, tab: _panelTab, onClose: onClose);
+        final locked = editor.readOnly;
+        Widget panel({VoidCallback? onClose}) => _lockable(
+          locked,
+          PropertiesPanel(editor: editor, tab: _panelTab, onClose: onClose),
+        );
         return Focus(
           canRequestFocus: false,
           skipTraversal: true,
@@ -1024,7 +1057,14 @@ class _EditorScreenState extends State<EditorScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _ribbonTabs(context),
-                            SizedBox(height: 74, child: _ribbon(context)),
+                            SizedBox(
+                              height: 74,
+                              // A aba Exibir continua livre no modo leitura.
+                              child: _lockable(
+                                locked && _ribbonTab != _RibbonTab.view,
+                                _ribbon(context),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1060,6 +1100,31 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         );
       },
+    );
+  }
+
+  /// No modo leitura, ferramentas de edição ficam esmaecidas e um clique
+  /// nelas explica como liberar.
+  Widget _lockable(bool locked, Widget child) {
+    if (!locked) return child;
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(child: Opacity(opacity: 0.4, child: child)),
+        ),
+        Positioned.fill(
+          child: Tooltip(
+            message: 'Modo leitura: ative a licença para editar',
+            child: MouseRegion(
+              cursor: SystemMouseCursors.forbidden,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _onReadOnly,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1103,7 +1168,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 });
               }
             },
-            selectionToolbar: _presenting
+            selectionToolbar: _presenting || editor.readOnly
                 ? null
                 : (_) => _selectionToolbar(context),
             onBadgeTap: _onBadgeTap,

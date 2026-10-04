@@ -58,6 +58,19 @@ class EditorController extends ChangeNotifier {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
+  /// Teste grátis encerrado e sem licença: o mapa só pode ser visto.
+  bool get readOnly => library.readOnly;
+
+  /// Chamado quando uma alteração é bloqueada pelo modo leitura.
+  VoidCallback? onReadOnly;
+
+  /// True (e avisa a tela) quando a alteração não é permitida.
+  bool _blocked() {
+    if (!readOnly) return false;
+    onReadOnly?.call();
+    return true;
+  }
+
   MindMapNode? get selected =>
       selectedId == null ? null : doc.nodes[selectedId!];
 
@@ -119,6 +132,7 @@ class EditorController extends ChangeNotifier {
 
   /// Volta o mapa para uma versão salva (pode ser desfeito com Ctrl+Z).
   void restoreVersion(String json) {
+    if (_blocked()) return;
     _pushUndo(_snapshot());
     final r = MindMapDoc.fromJson(jsonDecode(json) as Map<String, dynamic>);
     r.filePath = doc.filePath;
@@ -127,19 +141,22 @@ class EditorController extends ChangeNotifier {
   }
 
   void undo() {
-    if (_undo.isEmpty) return;
+    if (_undo.isEmpty || _blocked()) return;
     _redo.add(_snapshot());
     _restore(_undo.removeLast());
   }
 
   void redo() {
-    if (_redo.isEmpty) return;
+    if (_redo.isEmpty || _blocked()) return;
     _undo.add(_snapshot());
     _restore(_redo.removeLast());
   }
 
-  /// Executa uma alteração registrando-a no histórico.
-  void mutate(VoidCallback fn, {bool relayout = false}) {
+  /// Executa uma alteração registrando-a no histórico. Com [viewOnly], a
+  /// alteração só muda a visualização (ex.: recolher um ramo) e vale também
+  /// no modo leitura.
+  void mutate(VoidCallback fn, {bool relayout = false, bool viewOnly = false}) {
+    if (!viewOnly && _blocked()) return;
     _pushUndo(_snapshot());
     fn();
     doc.touch();
@@ -283,7 +300,7 @@ class EditorController extends ChangeNotifier {
 
   void startEditing([String? id, bool selectAll = false, String? initialText]) {
     final target = id ?? selectedId;
-    if (target == null) return;
+    if (target == null || _blocked()) return;
     selectedId = target;
     editingId = target;
     editingSelectAll = selectAll;
@@ -393,7 +410,7 @@ class EditorController extends ChangeNotifier {
   /// Novo subtópico; com [edit] falso não entra em modo de edição.
   String? addChildWith(String? parentId, {String? text, bool edit = true}) {
     final parent = doc.nodes[parentId ?? selectedId ?? doc.rootId];
-    if (parent == null) return null;
+    if (parent == null || _blocked()) return null;
     final n = _newChildOf(parent, text: text);
     mutate(() {
       parent.collapsed = false;
@@ -411,6 +428,7 @@ class EditorController extends ChangeNotifier {
   String? addSibling() {
     final cur = selected;
     if (cur == null || cur.parentId == null) return addChild(cur?.id);
+    if (_blocked()) return null;
     final parent = doc.nodes[cur.parentId]!;
     final n = _newChildOf(parent);
     n.color = cur.color;
@@ -430,6 +448,7 @@ class EditorController extends ChangeNotifier {
   String? addSiblingBefore() {
     final cur = selected;
     if (cur == null || cur.parentId == null) return addChild(cur?.id);
+    if (_blocked()) return null;
     final parent = doc.nodes[cur.parentId]!;
     final n = _newChildOf(parent);
     n.color = cur.color;
@@ -451,15 +470,19 @@ class EditorController extends ChangeNotifier {
   /// Cria vários tópicos de uma vez sob [parentId] (uma linha por tópico,
   /// recuo cria subtópicos).
   bool addMultiple(String text, [String? parentId]) {
+    if (_blocked()) return false;
     if (parentId != null) select(parentId);
     return pasteOutline(text);
   }
 
+  /// Novo tópico flutuante. No modo leitura não cria nada e devolve um id
+  /// vazio (que não corresponde a nenhum tópico).
   String addFloating(
     Offset scenePos, {
     String text = 'Tópico flutuante',
     bool edit = true,
   }) {
+    if (_blocked()) return '';
     final n = MindMapNode(
       id: newId(),
       text: text,
@@ -615,7 +638,7 @@ class EditorController extends ChangeNotifier {
     final hits = doc.nodes.values
         .where((n) => re.hasMatch(n.text) || (notes && re.hasMatch(n.note)))
         .toList();
-    if (hits.isEmpty) return 0;
+    if (hits.isEmpty || _blocked()) return 0;
     mutate(() {
       for (final n in hits) {
         n.text = n.text.replaceAll(re, replacement);
@@ -637,11 +660,11 @@ class EditorController extends ChangeNotifier {
   void toggleCollapse([String? id]) {
     final n = doc.nodes[id ?? selectedId ?? ''];
     if (n == null || n.childrenIds.isEmpty) return;
-    mutate(() => n.collapsed = !n.collapsed, relayout: true);
+    mutate(() => n.collapsed = !n.collapsed, relayout: true, viewOnly: true);
   }
 
   void setAllCollapsed(bool collapsed) {
-    mutate(() {
+    mutate(viewOnly: true, () {
       for (final n in doc.nodes.values) {
         if (n.id != doc.rootId && n.childrenIds.isNotEmpty) {
           n.collapsed = collapsed;
@@ -661,6 +684,7 @@ class EditorController extends ChangeNotifier {
     final n = doc.nodes[id];
     final np = doc.nodes[newParentId];
     if (n == null || np == null || n.parentId == newParentId) return false;
+    if (_blocked()) return false;
     mutate(() {
       if (n.parentId != null) doc.nodes[n.parentId]?.childrenIds.remove(id);
       n.parentId = newParentId;
@@ -712,11 +736,13 @@ class EditorController extends ChangeNotifier {
   // ---------------------------------------------------------------- arrastar
 
   void beginDrag(String id) {
-    _dragSnapshot = _snapshot();
     select(id);
+    if (readOnly) return;
+    _dragSnapshot = _snapshot();
   }
 
   void dragBy(String id, Offset delta) {
+    if (readOnly) return;
     for (final c in doc.subtreeIds(id)) {
       final n = doc.nodes[c];
       if (n != null) n.pos += delta;
@@ -746,6 +772,7 @@ class EditorController extends ChangeNotifier {
   bool endDrag(String id) {
     final snap = _dragSnapshot;
     _dragSnapshot = null;
+    if (snap == null && _blocked()) return false;
     final target = dropTargetFor(id);
     if (target != null && snap != null) {
       // Restaura a posição original e registra a mudança de pai.
@@ -804,7 +831,7 @@ class EditorController extends ChangeNotifier {
   bool paste() {
     final snap = library.clipboard;
     final parent = doc.nodes[selectedId ?? doc.rootId] ?? doc.root;
-    if (snap == null) return false;
+    if (snap == null || _blocked()) return false;
     String? newRoot;
     mutate(() {
       newRoot = _build(snap, parent, null);
@@ -842,7 +869,7 @@ class EditorController extends ChangeNotifier {
         .split(RegExp(r'\r?\n'))
         .where((l) => l.trim().isNotEmpty)
         .toList();
-    if (lines.isEmpty) return false;
+    if (lines.isEmpty || _blocked()) return false;
     final base = doc.nodes[selectedId ?? doc.rootId] ?? doc.root;
     String? first;
     mutate(() {
@@ -901,7 +928,7 @@ class EditorController extends ChangeNotifier {
   /// Começa a criar uma relação a partir do tópico selecionado.
   void startRelation([String? from]) {
     final id = from ?? selectedId;
-    if (id == null) return;
+    if (id == null || _blocked()) return;
     linkingFrom = id;
     editingId = null;
     notifyListeners();
@@ -968,7 +995,7 @@ class EditorController extends ChangeNotifier {
   /// Aplica uma paleta gerada (ex.: pela The Color API) como tema
   /// "Personalizado". A primeira cor vai para a ideia principal.
   void applyCustomPalette(List<String> colors) {
-    if (colors.isEmpty) return;
+    if (colors.isEmpty || _blocked()) return;
     doc.customPalette = List.of(colors);
     applyTheme('custom');
   }
@@ -1021,7 +1048,7 @@ class EditorController extends ChangeNotifier {
   }
 
   void rename(String name) {
-    if (name.trim().isEmpty) return;
+    if (name.trim().isEmpty || _blocked()) return;
     mutate(() => doc.name = name.trim());
     library.rename(doc.id, name);
   }

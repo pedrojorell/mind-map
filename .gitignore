@@ -53,3 +53,10 @@ app.*.map.json
 
 # Instaladores gerados
 installer/Output/
+
+# Licenças: a chave privada NUNCA vai para o Git (só a de teste em test/fixtures)
+chave-privada*.json
+segredos-do-servidor.txt
+licencas/.wrangler/
+licencas/.dev.vars
+licencas/node_modules/

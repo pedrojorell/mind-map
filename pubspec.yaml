@@ -1,7 +1,7 @@
 name: maplong
 description: MapLong - mapas mentais que funcionam offline e salvam seus documentos localmente.
 publish_to: "none"
-version: 2.0.0+3
+version: 2.1.0+4
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
@@ -19,6 +19,7 @@ dependencies:
   xml: ^6.6.1
   flutter_math_fork: ^0.7.4
   http: ^1.6.0
+  cryptography: ^2.9.0
 
 dev_dependencies:
   flutter_test:

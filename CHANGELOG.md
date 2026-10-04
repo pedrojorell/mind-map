@@ -4,6 +4,23 @@ Todas as mudanças importantes do MapLong ficam registradas aqui.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [2.1.0] — 2026-10-04
+
+### Adicionado
+- Licença vitalícia de R$ 69,00 com teste grátis de 7 dias. Depois do teste,
+  sem licença, o MapLong fica em modo leitura: os mapas continuam abrindo,
+  sendo apresentados e exportados, mas não é possível criar nem editar.
+- Tela da licença (Configurações → Ativar licença): estado do teste, compra e
+  ativação do código; aviso nos últimos dias do teste.
+- Códigos assinados digitalmente (Ed25519) e conferidos sem internet; licença
+  de proprietário com acesso total.
+- Gerador de licenças do proprietário (`licencas/gerador.mjs`).
+- Servidor de vendas para Cloudflare Workers: pagamento pelo Mercado Pago
+  (Pix ou cartão), entrega do código na tela e por e-mail (Brevo), gerador
+  on-line protegido por senha e recuperação de código pelo número do
+  pagamento.
+- Testes do gerador e do servidor na verificação automática do GitHub.
+
 ## [2.0.0] — 2026-10-02
 
 Primeira versão com o nome **MapLong** (antes: PinealMap).

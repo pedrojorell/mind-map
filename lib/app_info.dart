@@ -3,7 +3,7 @@
 /// teste confere isso).
 library;
 
-const kAppVersion = '2.0.0';
+const kAppVersion = '2.1.0';
 
 const kRepoOwner = 'pedrojorell';
 const kRepoName = 'mind-map';

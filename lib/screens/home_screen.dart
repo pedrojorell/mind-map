@@ -11,6 +11,7 @@ import '../models.dart';
 import '../templates.dart';
 import '../widgets/app_dialogs.dart';
 import '../widgets/brand.dart';
+import '../widgets/license_dialog.dart';
 import 'editor_screen.dart';
 
 enum _Section { home, maps, favorites, templates, trash }
@@ -52,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _create(MapTemplate t) {
+    if (!ensureCanEdit(context, lib)) return;
     final name = lib.uniqueName(
       t.title == 'Em branco' || t.title == 'Clássico' ? 'Novo mapa' : t.title,
     );
@@ -61,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _createFromText(String text) {
+    if (!ensureCanEdit(context, lib)) return;
     final first = text
         .split(RegExp(r'\r?\n'))
         .map(cleanOutlineLine)
@@ -74,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _textToMapDialog() async {
+    if (!ensureCanEdit(context, lib)) return;
     final c = TextEditingController();
     final text = await showDialog<String>(
       context: context,
@@ -118,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _rename(MindMapDoc d) async {
+    if (!ensureCanEdit(context, lib)) return;
     final name = await promptText(
       context,
       title: 'Renomear mapa',
@@ -204,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'rename':
         _rename(d);
       case 'duplicate':
-        lib.duplicate(d.id);
+        if (ensureCanEdit(context, lib)) lib.duplicate(d.id);
       case 'export':
         _export(d);
       case 'delete':
@@ -416,6 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'Lixeira${lib.trash.isEmpty ? '' : ' (${lib.trash.length})'}',
             ),
             const Spacer(),
+            _LicenseChip(library: lib, compact: compact),
             Divider(color: cs.outlineVariant),
             _sideAction(
               compact,
@@ -433,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
               compact,
               Icons.info_outline,
               'Sobre o MapLong',
-              () => showAboutMapLong(context),
+              () => showAboutMapLong(context, library: lib),
             ),
             _sideAction(
               compact,
@@ -1665,4 +1671,80 @@ class _PreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PreviewPainter old) => true;
+}
+
+/// Estado da licença na barra lateral (abre a tela da licença).
+class _LicenseChip extends StatelessWidget {
+  const _LicenseChip({required this.library, required this.compact});
+
+  final Library library;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l = library.license;
+    final days = library.trialDaysLeft;
+    final (icon, label, bg, fg) = l != null
+        ? (
+            Icons.verified_outlined,
+            l.isOwner ? 'Proprietário' : 'Licença Pro',
+            Colors.transparent,
+            cs.primary,
+          )
+        : days > 0
+        ? (
+            Icons.hourglass_top_outlined,
+            'Teste grátis · ${days == 1 ? '1 dia' : '$days dias'}',
+            cs.secondaryContainer,
+            cs.onSecondaryContainer,
+          )
+        : (
+            Icons.lock_outline,
+            'Ativar licença',
+            cs.errorContainer,
+            cs.onErrorContainer,
+          );
+    final chip = Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        key: const Key('license-chip'),
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => showLicenseDialog(context, library),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 0 : 12,
+            vertical: 8,
+          ),
+          child: Row(
+            mainAxisAlignment: compact
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
+            children: [
+              Icon(icon, size: 18, color: fg),
+              if (!compact) ...[
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: compact ? Tooltip(message: label, child: chip) : chip,
+    );
+  }
 }

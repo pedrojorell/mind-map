@@ -1,0 +1,22 @@
+# Servidor de vendas do MapLong (Cloudflare Workers).
+# Publicar: npx wrangler deploy   (passo a passo em licencas/README.md)
+name = "maplong-licencas"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+# Preço da licença vitalícia, em reais.
+PRICE = "69.00"
+PRODUCT_NAME = "MapLong"
+# E-mail remetente verificado no Brevo (deixe vazio para não enviar e-mails).
+EMAIL_FROM = ""
+EMAIL_FROM_NAME = "MapLong"
+# Link de download mostrado ao cliente.
+DOWNLOAD_URL = "https://github.com/pedrojorell/mind-map/releases/latest"
+
+# Opcional (recomendado): registra as licenças emitidas e evita e-mail repetido.
+# 1) npx wrangler kv namespace create LICENCAS
+# 2) tire o "#" das três linhas abaixo e cole o id que apareceu.
+# [[kv_namespaces]]
+# binding = "LICENCAS"
+# id = "COLE_O_ID_AQUI"

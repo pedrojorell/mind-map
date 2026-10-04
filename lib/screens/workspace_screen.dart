@@ -11,7 +11,9 @@ import '../library.dart';
 import '../models.dart';
 import '../templates.dart';
 import 'editor_screen.dart';
+import '../licensing/license.dart';
 import '../widgets/brand.dart';
+import '../widgets/license_dialog.dart';
 import 'home_screen.dart';
 
 /// Janela principal com abas, como num navegador: a aba "Início" e uma aba
@@ -114,7 +116,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     });
   }
 
+  /// Aviso de fim do teste dispensado nesta sessão.
+  bool _trialNoticeDismissed = false;
+
   void _newMap() {
+    if (!ensureCanEdit(context, lib)) return;
     final t = kTemplates.firstWhere((t) => t.title == 'Clássico');
     final doc = docFromTemplate(lib.uniqueName('Novo mapa'), t);
     lib.add(doc);
@@ -176,6 +182,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               onClose: _close,
               onNew: _newMap,
             ),
+            if (lib.readOnly ||
+                (!lib.isLicensed &&
+                    lib.trialDaysLeft <= 3 &&
+                    !_trialNoticeDismissed))
+              _LicenseBar(
+                library: lib,
+                onDismiss: lib.readOnly
+                    ? null
+                    : () => setState(() => _trialNoticeDismissed = true),
+              ),
             if (_update case final info?)
               _UpdateBar(
                 info: info,
@@ -390,6 +406,68 @@ class _TabState extends State<_Tab> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Faixa sobre o teste grátis: últimos dias ou modo leitura.
+class _LicenseBar extends StatelessWidget {
+  const _LicenseBar({required this.library, this.onDismiss});
+
+  final Library library;
+  final VoidCallback? onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final locked = library.readOnly;
+    final days = library.trialDaysLeft;
+    final bg = locked ? cs.errorContainer : cs.secondaryContainer;
+    final fg = locked ? cs.onErrorContainer : cs.onSecondaryContainer;
+    return Material(
+      color: bg,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            Icon(
+              locked ? Icons.lock_outline : Icons.hourglass_bottom,
+              size: 18,
+              color: fg,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                locked
+                    ? 'O teste grátis terminou: o MapLong está em modo leitura. '
+                          'Você pode abrir, apresentar e exportar seus mapas.'
+                    : 'O teste grátis termina em '
+                          '${days == 1 ? '1 dia' : '$days dias'}. '
+                          'Ative a licença para continuar editando.',
+                style: TextStyle(color: fg),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+            ),
+            if (kStoreUrl.isNotEmpty)
+              TextButton(
+                onPressed: () => openStore(context),
+                child: const Text('Comprar — $kLicensePrice'),
+              ),
+            FilledButton.tonal(
+              onPressed: () => showLicenseDialog(context, library),
+              child: const Text('Ativar licença'),
+            ),
+            if (onDismiss != null)
+              IconButton(
+                tooltip: 'Dispensar',
+                visualDensity: VisualDensity.compact,
+                onPressed: onDismiss,
+                icon: const Icon(Icons.close, size: 18),
+              ),
+          ],
         ),
       ),
     );
