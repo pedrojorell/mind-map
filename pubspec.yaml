@@ -19,7 +19,6 @@ dependencies:
   xml: ^6.6.1
   flutter_math_fork: ^0.7.4
   http: ^1.6.0
-  cryptography: ^2.9.0
 
 dev_dependencies:
   flutter_test:

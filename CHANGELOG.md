@@ -7,19 +7,27 @@ e as versões seguem o [Versionamento Semântico](https://semver.org/lang/pt-BR/
 ## [2.1.0] — 2026-10-04
 
 ### Adicionado
-- Licença vitalícia de R$ 69,00 com teste grátis de 7 dias. Depois do teste,
-  sem licença, o MapLong fica em modo leitura: os mapas continuam abrindo,
-  sendo apresentados e exportados, mas não é possível criar nem editar.
-- Tela da licença (Configurações → Ativar licença): estado do teste, compra e
-  ativação do código; aviso nos últimos dias do teste.
-- Códigos assinados digitalmente (Ed25519) e conferidos sem internet; licença
-  de proprietário com acesso total.
-- Gerador de licenças do proprietário (`licencas/gerador.mjs`).
-- Servidor de vendas para Cloudflare Workers: pagamento pelo Mercado Pago
-  (Pix ou cartão), entrega do código na tela e por e-mail (Brevo), gerador
-  on-line protegido por senha e recuperação de código pelo número do
-  pagamento.
-- Testes do gerador e do servidor na verificação automática do GitHub.
+- 27 formas de tópico: losango, documento, paralelogramo, círculo, processo,
+  armazenamento, cilindro, cartão, guia, octógono, etiqueta, setas, balão
+  de fala, estrela, gema, nuvem, nota adesiva e outras.
+- Estilo do tópico: fonte, realce (marca-texto), texto justificado, canto,
+  encher, cor e estilo da borda (contínua, tracejada, pontilhada); estilo,
+  cor e peso da linha de cada ramo, com o novo estilo "Afunilado".
+- Aplicar estilo aos tópicos do mesmo nível e redefinir estilo.
+- Caixa de texto e nota adesiva.
+- Estilo de página: fonte do tema, desenho à mão, fundo com textura ou
+  imagem, marca d'água, ramo colorido (por ramo, uma cor, por nível,
+  arco-íris), alinhar tópicos do mesmo nível e permitir sobreposição.
+- 8 temas novos e "Salvar como tema personalizado".
+- Relações em linha reta (Ctrl+Shift+R), contínuas ou tracejadas, com seta
+  no início e/ou no fim, cor própria e opção de ficar por cima ou por baixo
+  dos tópicos.
+- Linha de conexão (Ctrl+J): liga um tópico flutuante a outro tópico.
+- Marcadores: prioridade de 1 a 30, mais rostos, pessoas, setas, novos
+  símbolos e "Usados recentemente".
+
+### Corrigido
+- Ctrl+Alt+C copiava o tópico em vez de copiar o estilo.
 
 ## [2.0.0] — 2026-10-02
 

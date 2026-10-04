@@ -8,7 +8,6 @@ import '../library.dart';
 import '../services/app_log.dart';
 import '../services/updates.dart';
 import 'brand.dart';
-import 'license_dialog.dart';
 
 Future<void> _open(BuildContext context, String url) async {
   final ok = await launchUrl(
@@ -88,27 +87,6 @@ class _SettingsDialogState extends State<_SettingsDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Licença', style: t.titleSmall),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    lib.isLicensed
-                        ? Icons.verified_outlined
-                        : lib.readOnly
-                        ? Icons.lock_outline
-                        : Icons.hourglass_top_outlined,
-                    color: lib.readOnly
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.primary,
-                  ),
-                  title: Text(licenseStatusText(lib)),
-                  trailing: FilledButton.tonal(
-                    key: const Key('settings-license'),
-                    onPressed: () => showLicenseDialog(context, lib),
-                    child: Text(lib.isLicensed ? 'Detalhes' : 'Ativar licença'),
-                  ),
-                ),
-                const Divider(height: 24),
                 Text('Aparência', style: t.titleSmall),
                 const SizedBox(height: 8),
                 SegmentedButton<ThemeMode>(
@@ -217,7 +195,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
 // Sobre
 // =====================================================================
 
-Future<void> showAboutMapLong(BuildContext context, {Library? library}) {
+Future<void> showAboutMapLong(BuildContext context) {
   final t = Theme.of(context).textTheme;
   return showDialog<void>(
     context: context,
@@ -234,10 +212,6 @@ Future<void> showAboutMapLong(BuildContext context, {Library? library}) {
               const MapLongWordmark(fontSize: 28),
               const SizedBox(height: 6),
               Text('Versão $kAppVersion', style: t.bodyMedium),
-              if (library != null) ...[
-                const SizedBox(height: 4),
-                Text(licenseStatusText(library), style: t.bodySmall),
-              ],
               const SizedBox(height: 12),
               Text(
                 'Mapas mentais que funcionam offline e salvam tudo no seu '

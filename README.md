@@ -99,14 +99,6 @@ paletas da The Color API.
 - A janela lembra tamanho e posição
 - Instalador para Windows e verificação automática de cada Pull Request
 
-**Licença (R$ 69,00, vitalícia)**
-- 7 dias de teste grátis com tudo liberado; depois, sem licença, modo leitura
-  (abrir, apresentar e exportar continuam livres)
-- Código de ativação assinado digitalmente, conferido sem internet
-- Gerador de licenças do proprietário e servidor de vendas com Mercado Pago
-  (Pix ou cartão), que entrega o código na tela e por e-mail:
-  [licencas/README.md](licencas/README.md)
-
 Novidades de cada versão: [CHANGELOG.md](CHANGELOG.md).
 
 ## Atalhos
@@ -149,13 +141,10 @@ lib/
   import_export.dart      PDF, Word, CSV, HTML, OPML, FreeMind, Markdown, TXT
   media.dart              imagens, documentos e arrastar e soltar
   io/                     leitura/gravação de arquivos (desktop x web)
-  licensing/              conferência do código de licença (Ed25519)
   screens/                abas, tela inicial e editor
   widgets/                marca (logo), canvas, tópicos, painéis, faixa de ferramentas,
                           esboço, Gantt, marcadores e mídia
 test/                     testes
-licencas/                 gerador de licenças e servidor de vendas (Node.js / Cloudflare)
 ```
 
-Rodar os testes: `flutter test` (app) e `npm test` dentro de `licencas/`
-(gerador e servidor de vendas).
+Rodar os testes: `flutter test`

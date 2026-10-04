@@ -7,6 +7,7 @@ import 'package:maplong/layout.dart';
 import 'package:maplong/library.dart';
 import 'package:maplong/models.dart';
 import 'package:maplong/templates.dart';
+import 'package:maplong/widgets/markers.dart';
 import 'package:maplong/widgets/node_view.dart';
 import 'package:maplong/widgets/shapes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -228,6 +229,87 @@ void main() {
     await again.deleteTheme('Meu estilo');
     expect(again.savedThemes, isEmpty);
     ed.dispose();
+  });
+
+  test('relação em linha reta e opções da relação', () async {
+    final ed = await _editor();
+    final ids = ed.doc.root.childrenIds;
+    ed.startRelation(ids[0], 'straight');
+    expect(ed.completeRelation(ids[1]), isTrue);
+    final r = ed.doc.relations.single;
+    expect(r.straight, isTrue);
+    ed.updateRelation(r.id, (r) {
+      r
+        ..dashed = false
+        ..arrowStart = true;
+    });
+    final back = NodeRelation.fromJson(
+      jsonDecode(jsonEncode(r.toJson())) as Map<String, dynamic>,
+    );
+    expect(back.straight, isTrue);
+    expect(back.dashed, isFalse);
+    expect(back.arrowStart, isTrue);
+    expect(back.arrowEnd, isTrue);
+    ed.dispose();
+  });
+
+  test('linha de conexão liga um tópico flutuante a outro tópico', () async {
+    final ed = await _editor();
+    final target = ed.doc.root.childrenIds.first;
+    final f = ed.addFloating(const Offset(900, 900), edit: false);
+    ed.startConnection(f);
+    expect(ed.linkingMode, 'connect');
+    expect(ed.completeRelation(target), isTrue);
+    expect(ed.doc.nodes[f]!.parentId, target);
+    expect(ed.doc.nodes[target]!.childrenIds, contains(f));
+    expect(ed.doc.relations, isEmpty);
+    expect(ed.linkingMode, 'relation');
+    ed.dispose();
+  });
+
+  test('marcadores usados recentemente são lembrados', () async {
+    final ed = await _editor();
+    final id = ed.doc.root.childrenIds.first;
+    ed
+      ..toggleMarker('priority', '12', id)
+      ..toggleMarker('arrow', 'up', id)
+      ..toggleMarker('face', 'party', id);
+    expect(ed.library.recentMarkers.take(3), [
+      'face:party',
+      'arrow:up',
+      'priority:12',
+    ]);
+    final again = Library(prefs: await SharedPreferences.getInstance());
+    await again.load();
+    expect(again.recentMarkers.first, 'face:party');
+    ed.dispose();
+  });
+
+  testWidgets('todos os marcadores são desenhados', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Wrap(
+              children: [
+                for (final g in kMarkerGroups)
+                  for (final v in g.values) MarkerIcon(g.id, v, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byType(MarkerIcon),
+      findsNWidgets(kMarkerGroups.fold(0, (s, g) => s + g.values.length)),
+    );
+    for (final g in kMarkerGroups) {
+      for (final v in g.values) {
+        expect(markerLabel(g.id, v), isNotEmpty);
+      }
+    }
   });
 
   test('todas as formas geram contorno dentro do retângulo', () {

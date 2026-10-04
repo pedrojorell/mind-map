@@ -421,15 +421,9 @@ const kMarkerColors = <String>[
 
 const kMarkerGroups = <MarkerGroup>[
   MarkerGroup('priority', 'Prioridade', [
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', //
+    '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', //
+    '21', '22', '23', '24', '25', '26', '27', '28', '29', '30',
   ]),
   MarkerGroup('progress', 'Progresso', [
     '0',
@@ -442,16 +436,41 @@ const kMarkerGroups = <MarkerGroup>[
     '87',
     '100',
   ]),
-  MarkerGroup('flag', 'Bandeira', kMarkerColors),
-  MarkerGroup('star', 'Estrela', kMarkerColors),
-  MarkerGroup('face', 'Humor', [
+  MarkerGroup('face', 'Rosto', [
     'happy',
     'calm',
     'neutral',
     'sad',
     'angry',
     'love',
+    'laugh',
+    'wink',
+    'cool',
+    'think',
+    'surprise',
+    'cry',
+    'sleep',
+    'party',
+    'starstruck',
+    'sick',
+    'angel',
+    'scream',
   ]),
+  MarkerGroup('person', 'Pessoa', kMarkerColors),
+  MarkerGroup('arrow', 'Seta', [
+    'up',
+    'down',
+    'left',
+    'right',
+    'up_right',
+    'down_right',
+    'down_left',
+    'up_left',
+    'repeat',
+    'swap',
+  ]),
+  MarkerGroup('flag', 'Bandeira', kMarkerColors),
+  MarkerGroup('star', 'Estrela', kMarkerColors),
   MarkerGroup('symbol', 'Símbolo', [
     'check',
     'cross',
@@ -461,8 +480,20 @@ const kMarkerGroups = <MarkerGroup>[
     'info',
     'time',
     'money',
+    'heart',
+    'pin',
+    'lock',
+    'link',
+    'phone',
+    'mail',
+    'home',
+    'calendar',
+    'bug',
+    'rocket',
+    'trophy',
+    'target',
   ]),
-  MarkerGroup('day', 'Dia da semana', [
+  MarkerGroup('day', 'Semana', [
     'seg',
     'ter',
     'qua',
@@ -946,6 +977,10 @@ class NodeRelation {
     required this.to,
     this.label = '',
     this.color = '#8E7CC3',
+    this.straight = false,
+    this.dashed = true,
+    this.arrowStart = false,
+    this.arrowEnd = true,
   });
 
   final String id;
@@ -954,12 +989,26 @@ class NodeRelation {
   String label;
   String color;
 
+  /// Linha reta (em vez de curva).
+  bool straight;
+
+  /// Linha tracejada (em vez de contínua).
+  bool dashed;
+
+  /// Pontas de seta no início e no fim.
+  bool arrowStart;
+  bool arrowEnd;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'from': from,
     'to': to,
     'label': label,
     'color': color,
+    if (straight) 'straight': true,
+    if (!dashed) 'dashed': false,
+    if (arrowStart) 'arrowStart': true,
+    if (!arrowEnd) 'arrowEnd': false,
   };
 
   static NodeRelation fromJson(Map<String, dynamic> j) => NodeRelation(
@@ -968,6 +1017,10 @@ class NodeRelation {
     to: j['to'] as String,
     label: (j['label'] as String?) ?? '',
     color: (j['color'] as String?) ?? '#8E7CC3',
+    straight: j['straight'] == true,
+    dashed: j['dashed'] != false,
+    arrowStart: j['arrowStart'] == true,
+    arrowEnd: j['arrowEnd'] != false,
   );
 }
 

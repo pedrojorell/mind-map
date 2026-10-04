@@ -5,18 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'io/file_io.dart';
-import 'licensing/license.dart';
 import 'models.dart';
 
 /// Biblioteca local de mapas: guarda todos os documentos no armazenamento do
-/// aplicativo (salvamento automático), as preferências e a licença.
+/// aplicativo (salvamento automático) e as preferências do usuário.
 class Library extends ChangeNotifier {
-  Library({
-    SharedPreferences? prefs,
-    DateTime Function()? clock,
-    this.licensePublicKey = kLicensePublicKey,
-  }) : _prefsOverride = prefs,
-       _clock = clock ?? DateTime.now;
+  Library({SharedPreferences? prefs}) : _prefsOverride = prefs;
 
   // As chaves mantêm o prefixo antigo (PinealMap) para preservar os mapas
   // já salvos antes da mudança de nome para MapLong.
@@ -27,24 +21,23 @@ class Library extends ChangeNotifier {
   static const _kWelcomeSeen = 'maplong.settings.welcomeSeen';
   static const _kLegacyDocs = 'pinealmap.docs.v1';
   static const _kVersionsPrefix = 'pinealmap.versions.v1.';
-  static const _kLicense = 'maplong.license.code';
-  static const _kTrialStart = 'maplong.license.trialStart';
-  static const _kLastSeen = 'maplong.license.lastSeen';
   static const _kSavedThemes = 'maplong.themes.saved';
+  static const _kRecentMarkers = 'maplong.markers.recent';
 
   /// Temas salvos pelo usuário.
   List<SavedTheme> savedThemes = [];
 
-  final DateTime Function() _clock;
+  /// Marcadores usados por último (`grupo:valor`), o mais recente primeiro.
+  List<String> recentMarkers = [];
 
-  /// Chave pública que confere as licenças (os testes usam outra).
-  final String licensePublicKey;
-
-  /// Licença ativada neste computador (null = sem licença).
-  License? license;
-
-  DateTime? _trialStart;
-  int _lastSeenMs = 0;
+  /// Registra o uso de um marcador (guarda os 12 últimos).
+  void useMarker(String marker) {
+    recentMarkers = [
+      marker,
+      ...recentMarkers.where((m) => m != marker),
+    ].take(12).toList();
+    _prefs.setStringList(_kRecentMarkers, recentMarkers);
+  }
 
   /// Máximo de versões guardadas por mapa.
   static int get maxVersions => canUseFilePaths ? 30 : 6;
@@ -177,7 +170,7 @@ class Library extends ChangeNotifier {
       for (final raw in _prefs.getStringList(_kSavedThemes) ?? const [])
         ?_decodeTheme(raw),
     ];
-    await _loadLicense();
+    recentMarkers = _prefs.getStringList(_kRecentMarkers) ?? [];
 
     final ids = _prefs.getStringList(_kIndex) ?? const <String>[];
     for (final id in ids) {
@@ -246,70 +239,6 @@ class Library extends ChangeNotifier {
     await _prefs.setStringList(_kSavedThemes, [
       for (final s in savedThemes) jsonEncode(s.toJson()),
     ]);
-    notifyListeners();
-  }
-
-  // ------------------------------------------------------------- licença
-
-  Future<void> _loadLicense() async {
-    final now = _clock().millisecondsSinceEpoch;
-    // Guarda o maior horário já visto: atrasar o relógio não estende o teste.
-    final seen = _prefs.getInt(_kLastSeen) ?? now;
-    _lastSeenMs = seen > now ? seen : now;
-    await _prefs.setInt(_kLastSeen, _lastSeenMs);
-
-    final start = _prefs.getInt(_kTrialStart);
-    if (start == null) {
-      await _prefs.setInt(_kTrialStart, now);
-    }
-    _trialStart = DateTime.fromMillisecondsSinceEpoch(start ?? now);
-
-    final code = _prefs.getString(_kLicense);
-    if (code != null) {
-      try {
-        license = await verifyLicense(code, publicKey: licensePublicKey);
-      } on LicenseException catch (e) {
-        debugPrint('MapLong: licença salva não vale: $e');
-        license = null;
-      }
-    }
-  }
-
-  DateTime get _now {
-    final now = _clock().millisecondsSinceEpoch;
-    return DateTime.fromMillisecondsSinceEpoch(
-      now > _lastSeenMs ? now : _lastSeenMs,
-    );
-  }
-
-  bool get isLicensed => license != null;
-
-  /// Dias restantes do teste grátis (0 = terminou).
-  int get trialDaysLeft {
-    final start = _trialStart;
-    if (start == null) return kTrialDays;
-    final left = start.add(const Duration(days: kTrialDays)).difference(_now);
-    if (left <= Duration.zero) return 0;
-    return (left.inMinutes / Duration.minutesPerDay).ceil();
-  }
-
-  /// Sem licença e com o teste encerrado: os mapas podem ser abertos,
-  /// apresentados e exportados, mas não criados nem editados.
-  bool get readOnly => !isLicensed && trialDaysLeft <= 0;
-
-  /// Confere e ativa um código. Lança [LicenseException] se não valer.
-  Future<License> activateLicense(String code) async {
-    final lic = await verifyLicense(code, publicKey: licensePublicKey);
-    license = lic;
-    await _prefs.setString(_kLicense, lic.code);
-    notifyListeners();
-    return lic;
-  }
-
-  /// Remove a licença deste computador (para usá-la em outro).
-  Future<void> removeLicense() async {
-    license = null;
-    await _prefs.remove(_kLicense);
     notifyListeners();
   }
 

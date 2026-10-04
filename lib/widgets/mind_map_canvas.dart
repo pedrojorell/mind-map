@@ -1383,25 +1383,42 @@ class _RelationsPainter extends CustomPainter {
     for (final r in doc.relations) {
       if (!visibleIds.contains(r.from) || !visibleIds.contains(r.to)) continue;
       final a = _rect(r.from), b = _rect(r.to);
-      final mid = (a.center + b.center) / 2;
-      final d = b.center - a.center;
-      final ctrl = mid + Offset(-d.dy, d.dx) * 0.22 + const Offset(0, -30);
-      final start = _edge(a.inflate(4), ctrl);
-      final end = _edge(b.inflate(6), ctrl);
-      final c1 = start + (ctrl - start) * 0.9;
-      final c2 = end + (ctrl - end) * 0.9;
-      final path = Path()
-        ..moveTo(start.dx, start.dy)
-        ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, end.dx, end.dy);
+      final Offset start, end, c1, c2;
+      if (r.straight) {
+        start = _edge(a.inflate(4), b.center);
+        end = _edge(b.inflate(6), a.center);
+        c1 = start;
+        c2 = start;
+      } else {
+        final mid = (a.center + b.center) / 2;
+        final d = b.center - a.center;
+        final ctrl = mid + Offset(-d.dy, d.dx) * 0.22 + const Offset(0, -30);
+        start = _edge(a.inflate(4), ctrl);
+        end = _edge(b.inflate(6), ctrl);
+        c1 = start + (ctrl - start) * 0.9;
+        c2 = end + (ctrl - end) * 0.9;
+      }
+      final path = Path()..moveTo(start.dx, start.dy);
+      if (r.straight) {
+        path.lineTo(end.dx, end.dy);
+      } else {
+        path.cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, end.dx, end.dy);
+      }
       final color = parseHex(r.color) ?? _defaultColor;
       p.color = color;
-      _dashed(canvas, path, p);
-      _arrow(canvas, c2, end, color);
+      if (r.dashed) {
+        _dashed(canvas, path, p);
+      } else {
+        canvas.drawPath(path, p);
+      }
+      if (r.arrowEnd) _arrow(canvas, r.straight ? start : c2, end, color);
+      if (r.arrowStart) _arrow(canvas, r.straight ? end : c1, start, color);
 
       if (r.label.trim().isNotEmpty) {
         final metric = path.computeMetrics().firstOrNull;
         final at =
-            metric?.getTangentForOffset(metric.length / 2)?.position ?? ctrl;
+            metric?.getTangentForOffset(metric.length / 2)?.position ??
+            (start + end) / 2;
         final tp = TextPainter(
           text: TextSpan(
             text: r.label,

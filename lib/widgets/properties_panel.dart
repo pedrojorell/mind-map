@@ -685,7 +685,33 @@ class PropertiesPanel extends StatelessWidget {
   // -------------------------------------------------------------- marcadores
 
   List<Widget> _markersTab(BuildContext context, MindMapNode n) {
+    final recent = editor.library.recentMarkers
+        .where((m) => m.contains(':'))
+        .toList();
     return [
+      if (recent.isNotEmpty) ...[
+        _Section('Usados recentemente'),
+        Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: [
+            for (final m in recent)
+              Builder(
+                builder: (_) {
+                  final i = m.indexOf(':');
+                  final g = m.substring(0, i), v = m.substring(i + 1);
+                  return _PickTile(
+                    selected: n.marker(g) == v,
+                    tooltip: markerLabel(g, v),
+                    padding: const EdgeInsets.all(5),
+                    onTap: () => editor.toggleMarker(g, v),
+                    child: MarkerIcon(g, v, size: 20),
+                  );
+                },
+              ),
+          ],
+        ),
+      ],
       for (final g in kMarkerGroups) ...[
         _Section(g.name),
         Wrap(
@@ -730,6 +756,15 @@ class PropertiesPanel extends StatelessWidget {
           ),
         ],
       ),
+      if (n.parentId == null && id != editor.doc.rootId)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            icon: const Icon(Icons.link, size: 18),
+            label: const Text('Ligar a um tópico (Ctrl+J)'),
+            onPressed: () => editor.startConnection(id),
+          ),
+        ),
       if (rels.isEmpty)
         Text(
           'Ligue este tópico a qualquer outro com uma seta.',
@@ -738,32 +773,94 @@ class PropertiesPanel extends StatelessWidget {
       else
         for (final r in rels)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  r.from == id ? Icons.arrow_forward : Icons.arrow_back,
-                  size: 16,
-                  color: parseHex(r.color),
+                Row(
+                  children: [
+                    Icon(
+                      r.from == id ? Icons.arrow_forward : Icons.arrow_back,
+                      size: 16,
+                      color: parseHex(r.color),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: CommitTextField(
+                        key: ValueKey('rel_${r.id}'),
+                        value: r.label,
+                        label:
+                            editor.doc.nodes[r.from == id ? r.to : r.from]?.text
+                                .replaceAll('\n', ' ') ??
+                            '',
+                        hint: 'Rótulo da relação',
+                        onCommit: (v) => editor.updateRelation(
+                          r.id,
+                          (r) => r.label = v.trim(),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Excluir relação',
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      onPressed: () => editor.removeRelation(r.id),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: CommitTextField(
-                    key: ValueKey('rel_${r.id}'),
-                    value: r.label,
-                    label:
-                        editor.doc.nodes[r.from == id ? r.to : r.from]?.text
-                            .replaceAll('\n', ' ') ??
-                        '',
-                    hint: 'Rótulo da relação',
-                    onCommit: (v) =>
-                        editor.updateRelation(r.id, (r) => r.label = v.trim()),
-                  ),
+                Wrap(
+                  children: [
+                    _Toggle(
+                      tip: r.straight ? 'Linha reta' : 'Linha curva',
+                      icon: r.straight ? Icons.north_east : Icons.moving,
+                      on: r.straight,
+                      onTap: () => editor.updateRelation(
+                        r.id,
+                        (r) => r.straight = !r.straight,
+                      ),
+                    ),
+                    _Toggle(
+                      tip: 'Tracejada',
+                      icon: Icons.more_horiz,
+                      on: r.dashed,
+                      onTap: () => editor.updateRelation(
+                        r.id,
+                        (r) => r.dashed = !r.dashed,
+                      ),
+                    ),
+                    _Toggle(
+                      tip: 'Seta no início',
+                      icon: Icons.west,
+                      on: r.arrowStart,
+                      onTap: () => editor.updateRelation(
+                        r.id,
+                        (r) => r.arrowStart = !r.arrowStart,
+                      ),
+                    ),
+                    _Toggle(
+                      tip: 'Seta no fim',
+                      icon: Icons.east,
+                      on: r.arrowEnd,
+                      onTap: () => editor.updateRelation(
+                        r.id,
+                        (r) => r.arrowEnd = !r.arrowEnd,
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  tooltip: 'Excluir relação',
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  onPressed: () => editor.removeRelation(r.id),
+                ColorRow(
+                  size: 20,
+                  colors: const [
+                    '#8E7CC3',
+                    '#E53935',
+                    '#FB8C00',
+                    '#43A047',
+                    '#1E88E5',
+                    '#5E35B1',
+                    '#546E7A',
+                  ],
+                  selected: r.color,
+                  onPick: (c) =>
+                      editor.updateRelation(r.id, (r) => r.color = c),
                 ),
               ],
             ),

@@ -19,7 +19,6 @@ import '../widgets/ribbon.dart';
 import '../widgets/web_dialogs.dart';
 import '../widgets/app_dialogs.dart';
 import '../widgets/brand.dart';
-import '../widgets/license_dialog.dart';
 
 enum _RibbonTab { home, insert, design, view }
 
@@ -90,36 +89,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void initState() {
     super.initState();
     editor.addListener(_onEditorChanged);
-    editor.onReadOnly = _onReadOnly;
     _lastSelected = editor.selectedId;
-  }
-
-  DateTime? _readOnlyNoticeAt;
-
-  /// Uma alteração foi bloqueada: o teste grátis terminou.
-  void _onReadOnly() {
-    final now = DateTime.now();
-    final last = _readOnlyNoticeAt;
-    if (last != null && now.difference(last) < const Duration(seconds: 3)) {
-      return;
-    }
-    _readOnlyNoticeAt = now;
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          width: 520,
-          content: const Text(
-            'Modo leitura: o teste grátis terminou. Ative a licença para editar.',
-          ),
-          action: SnackBarAction(
-            label: 'Ativar',
-            onPressed: () => showLicenseDialog(context, widget.library),
-          ),
-        ),
-      );
   }
 
   @override
@@ -227,6 +197,44 @@ class _EditorScreenState extends State<EditorScreen> {
     editor.addStickyNote(c + const Offset(180, 140));
   }
 
+  /// Botão "Relação" com as variações (curva, reta, linha de conexão).
+  Widget _relationButton(bool hasSel) => RibbonButton(
+    icon: Icons.moving,
+    label: 'Relação',
+    tip: 'Ligar dois tópicos com uma seta (Ctrl+R)',
+    onTap: hasSel ? _startRelation : null,
+    menu: [
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.moving, size: 18),
+        shortcut: const SingleActivator(LogicalKeyboardKey.keyR, control: true),
+        onPressed: hasSel ? () => _startRelation() : null,
+        child: const Text('Relação'),
+      ),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.north_east, size: 18),
+        shortcut: const SingleActivator(
+          LogicalKeyboardKey.keyR,
+          control: true,
+          shift: true,
+        ),
+        onPressed: hasSel ? () => _startRelation('straight') : null,
+        child: const Text('Relação (linha reta)'),
+      ),
+      CheckboxMenuButton(
+        value: editor.doc.relationsOnTop,
+        onChanged: (v) => editor.setRelationsOnTop(v ?? true),
+        child: const Text('Colocar na parte superior'),
+      ),
+      const Divider(height: 1),
+      MenuItemButton(
+        leadingIcon: const Icon(Icons.link, size: 18),
+        shortcut: const SingleActivator(LogicalKeyboardKey.keyJ, control: true),
+        onPressed: hasSel ? () => _startRelation('connect') : null,
+        child: const Text('Linha de conexão'),
+      ),
+    ],
+  );
+
   /// Botão "Formato" com a galeria de formas.
   Widget _shapeButton(MindMapNode? sel) => RibbonButton(
     icon: Icons.category_outlined,
@@ -256,13 +264,22 @@ class _EditorScreenState extends State<EditorScreen> {
     ],
   );
 
-  void _startRelation() {
-    if (editor.selectedId == null) {
-      _snack('Selecione o tópico de origem da relação.');
+  /// [mode]: 'relation' (curva), 'straight' (reta) ou 'connect' (linha de
+  /// conexão, que liga o tópico ao destino como subtópico).
+  void _startRelation([String mode = 'relation']) {
+    final sel = editor.selectedId;
+    if (sel == null) {
+      _snack('Selecione o tópico de origem.');
+      return;
+    }
+    if (mode == 'connect' && sel == editor.doc.rootId) {
+      _snack(
+        'Selecione o tópico que vai ser ligado (por exemplo, um flutuante).',
+      );
       return;
     }
     if (_outline) setState(() => _view = _View.map);
-    editor.startRelation();
+    editor.startRelation(null, mode);
   }
 
   Future<void> _addMultiple() async {
@@ -750,7 +767,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
     var handled = false;
     if (ctrl) {
-      if (k == LogicalKeyboardKey.keyZ) {
+      // Atalhos com Alt primeiro: Ctrl+Alt+C não pode virar Ctrl+C.
+      if (alt && k == LogicalKeyboardKey.keyC) {
+        handled = run(() {
+          editor.copyStyle();
+          _snack('Estilo copiado. Selecione tópicos e use Ctrl+Alt+V.');
+        });
+      } else if (alt && k == LogicalKeyboardKey.keyV) {
+        handled = run(editor.pasteStyle);
+      } else if (k == LogicalKeyboardKey.keyZ) {
         handled = run(shift ? editor.redo : editor.undo);
       } else if (k == LogicalKeyboardKey.keyY) {
         handled = run(editor.redo);
@@ -766,15 +791,10 @@ class _EditorScreenState extends State<EditorScreen> {
         handled = run(editor.selectAll);
       } else if (k == LogicalKeyboardKey.keyH) {
         handled = run(_findReplace);
-      } else if (alt && k == LogicalKeyboardKey.keyC) {
-        handled = run(() {
-          editor.copyStyle();
-          _snack('Estilo copiado. Selecione tópicos e use Ctrl+Alt+V.');
-        });
-      } else if (alt && k == LogicalKeyboardKey.keyV) {
-        handled = run(editor.pasteStyle);
       } else if (k == LogicalKeyboardKey.keyR) {
-        handled = run(_startRelation);
+        handled = run(() => _startRelation(shift ? 'straight' : 'relation'));
+      } else if (k == LogicalKeyboardKey.keyJ) {
+        handled = run(() => _startRelation('connect'));
       } else if (k == LogicalKeyboardKey.digit0 ||
           k == LogicalKeyboardKey.numpad0) {
         handled = run(() => canvas?.fitToScreen());
@@ -1071,11 +1091,8 @@ class _EditorScreenState extends State<EditorScreen> {
       builder: (context, _) {
         final wide = MediaQuery.sizeOf(context).width >= 760;
         final cs = Theme.of(context).colorScheme;
-        final locked = editor.readOnly;
-        Widget panel({VoidCallback? onClose}) => _lockable(
-          locked,
-          PropertiesPanel(editor: editor, tab: _panelTab, onClose: onClose),
-        );
+        Widget panel({VoidCallback? onClose}) =>
+            PropertiesPanel(editor: editor, tab: _panelTab, onClose: onClose);
         return Focus(
           canRequestFocus: false,
           skipTraversal: true,
@@ -1096,14 +1113,7 @@ class _EditorScreenState extends State<EditorScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _ribbonTabs(context),
-                            SizedBox(
-                              height: 74,
-                              // A aba Exibir continua livre no modo leitura.
-                              child: _lockable(
-                                locked && _ribbonTab != _RibbonTab.view,
-                                _ribbon(context),
-                              ),
-                            ),
+                            SizedBox(height: 74, child: _ribbon(context)),
                           ],
                         ),
                       ),
@@ -1139,31 +1149,6 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         );
       },
-    );
-  }
-
-  /// No modo leitura, ferramentas de edição ficam esmaecidas e um clique
-  /// nelas explica como liberar.
-  Widget _lockable(bool locked, Widget child) {
-    if (!locked) return child;
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: IgnorePointer(child: Opacity(opacity: 0.4, child: child)),
-        ),
-        Positioned.fill(
-          child: Tooltip(
-            message: 'Modo leitura: ative a licença para editar',
-            child: MouseRegion(
-              cursor: SystemMouseCursors.forbidden,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _onReadOnly,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -1207,7 +1192,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 });
               }
             },
-            selectionToolbar: _presenting || editor.readOnly
+            selectionToolbar: _presenting
                 ? null
                 : (_) => _selectionToolbar(context),
             onBadgeTap: _onBadgeTap,
@@ -1286,13 +1271,17 @@ class _EditorScreenState extends State<EditorScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.moving,
+                          editor.linkingMode == 'connect'
+                              ? Icons.link
+                              : Icons.moving,
                           size: 18,
                           color: cs.onInverseSurface,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Clique no tópico de destino da relação',
+                          editor.linkingMode == 'connect'
+                              ? 'Clique no tópico ao qual ligar este tópico'
+                              : 'Clique no tópico de destino da relação',
                           style: TextStyle(color: cs.onInverseSurface),
                         ),
                         const SizedBox(width: 8),
@@ -1737,12 +1726,7 @@ class _EditorScreenState extends State<EditorScreen> {
           onTap: _addMultiple,
         ),
         const RibbonDivider(),
-        RibbonButton(
-          icon: Icons.moving,
-          label: 'Relação',
-          tip: 'Ligar dois tópicos com uma seta (Ctrl+R)',
-          onTap: hasSel ? _startRelation : null,
-        ),
+        _relationButton(hasSel),
         _shapeButton(sel),
         RibbonButton(
           icon: Icons.text_fields,
@@ -1888,11 +1872,7 @@ class _EditorScreenState extends State<EditorScreen> {
           onTap: () => _run(_addStickyNote),
         ),
         const RibbonDivider(),
-        RibbonButton(
-          icon: Icons.moving,
-          label: 'Relação',
-          onTap: hasSel ? _startRelation : null,
-        ),
+        _relationButton(hasSel),
         RibbonButton(
           icon: Icons.flag_outlined,
           label: 'Marcador',

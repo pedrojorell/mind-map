@@ -13,6 +13,35 @@ const _faces = <String, (IconData, Color, String)>{
   'love': (Icons.favorite, Color(0xFFEC407A), 'Amei'),
 };
 
+/// Rostos desenhados como emoji (além dos ícones de [_faces]).
+const _emojiFaces = <String, (String, String)>{
+  'laugh': ('😂', 'Rindo'),
+  'wink': ('😉', 'Piscando'),
+  'cool': ('😎', 'Tranquilão'),
+  'think': ('🤔', 'Pensando'),
+  'surprise': ('😮', 'Surpreso'),
+  'cry': ('😭', 'Chorando'),
+  'sleep': ('😴', 'Com sono'),
+  'party': ('🥳', 'Comemorando'),
+  'starstruck': ('🤩', 'Encantado'),
+  'sick': ('🤒', 'Doente'),
+  'angel': ('😇', 'Anjo'),
+  'scream': ('😱', 'Assustado'),
+};
+
+const _arrows = <String, (IconData, String)>{
+  'up': (Icons.arrow_upward, 'Para cima'),
+  'down': (Icons.arrow_downward, 'Para baixo'),
+  'left': (Icons.arrow_back, 'Para a esquerda'),
+  'right': (Icons.arrow_forward, 'Para a direita'),
+  'up_right': (Icons.north_east, 'Subindo'),
+  'down_right': (Icons.south_east, 'Descendo'),
+  'down_left': (Icons.south_west, 'Voltando'),
+  'up_left': (Icons.north_west, 'Retornando'),
+  'repeat': (Icons.sync, 'Repetir'),
+  'swap': (Icons.swap_horiz, 'Trocar'),
+};
+
 const _symbols = <String, (IconData, Color, String)>{
   'check': (Icons.check_circle, Color(0xFF43A047), 'Concluído'),
   'cross': (Icons.cancel, Color(0xFFE53935), 'Cancelado'),
@@ -22,6 +51,18 @@ const _symbols = <String, (IconData, Color, String)>{
   'info': (Icons.info, Color(0xFF1E88E5), 'Informação'),
   'time': (Icons.schedule, Color(0xFF8E24AA), 'Prazo'),
   'money': (Icons.monetization_on, Color(0xFF2E7D32), 'Custo'),
+  'heart': (Icons.favorite, Color(0xFFE91E63), 'Favorito'),
+  'pin': (Icons.push_pin, Color(0xFFD32F2F), 'Fixado'),
+  'lock': (Icons.lock, Color(0xFF616161), 'Bloqueado'),
+  'link': (Icons.link, Color(0xFF1976D2), 'Ligação'),
+  'phone': (Icons.call, Color(0xFF388E3C), 'Ligar'),
+  'mail': (Icons.mail, Color(0xFF0288D1), 'E-mail'),
+  'home': (Icons.home, Color(0xFF6D4C41), 'Casa'),
+  'calendar': (Icons.event, Color(0xFFE64A19), 'Data'),
+  'bug': (Icons.bug_report, Color(0xFF7B1FA2), 'Problema'),
+  'rocket': (Icons.rocket_launch, Color(0xFF3949AB), 'Lançamento'),
+  'trophy': (Icons.emoji_events, Color(0xFFFFA000), 'Conquista'),
+  'target': (Icons.track_changes, Color(0xFFC62828), 'Meta'),
 };
 
 /// Descrição curta de um marcador (para dicas).
@@ -32,7 +73,11 @@ String markerLabel(String group, String value) {
     case 'progress':
       return 'Progresso $value%';
     case 'face':
-      return _faces[value]?.$3 ?? value;
+      return _faces[value]?.$3 ?? _emojiFaces[value]?.$2 ?? value;
+    case 'arrow':
+      return 'Seta: ${_arrows[value]?.$2 ?? value}';
+    case 'person':
+      return 'Pessoa';
     case 'symbol':
       return _symbols[value]?.$3 ?? value;
     case 'day':
@@ -76,7 +121,8 @@ class MarkerIcon extends StatelessWidget {
           Color(0xFF6D4C41),
           Color(0xFF757575),
         ];
-        return _circle(colors[(n - 1).clamp(0, 8)], value, dark: n == 3);
+        final i = (n - 1) % colors.length;
+        return _circle(colors[i < 0 ? 0 : i], value, dark: i == 2);
       case 'progress':
         return SizedBox.square(
           dimension: size,
@@ -97,8 +143,26 @@ class MarkerIcon extends StatelessWidget {
           color: parseHex(value) ?? Colors.amber,
         );
       case 'face':
+        if (_emojiFaces[value] case final e?) {
+          return SizedBox.square(
+            dimension: size + 1,
+            child: FittedBox(
+              child: Text(e.$1, style: const TextStyle(height: 1)),
+            ),
+          );
+        }
         final f = _faces[value] ?? _faces['neutral']!;
         return Icon(f.$1, size: size + 1, color: f.$2);
+      case 'person':
+        return _iconCircle(
+          Icons.person,
+          parseHex(value) ?? const Color(0xFF1E88E5),
+        );
+      case 'arrow':
+        return _iconCircle(
+          _arrows[value]?.$1 ?? Icons.arrow_forward,
+          const Color(0xFFEC407A),
+        );
       case 'symbol':
         final f = _symbols[value] ?? _symbols['info']!;
         return Icon(f.$1, size: size + 1, color: f.$2);
@@ -128,6 +192,14 @@ class MarkerIcon extends StatelessWidget {
     }
   }
 
+  Widget _iconCircle(IconData icon, Color color) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    child: Icon(icon, size: size * 0.72, color: Colors.white),
+  );
+
   Widget _circle(Color color, String text, {bool dark = false}) => Container(
     width: size,
     height: size,
@@ -136,7 +208,7 @@ class MarkerIcon extends StatelessWidget {
     child: Text(
       text,
       style: TextStyle(
-        fontSize: size * 0.6,
+        fontSize: size * (text.length > 1 ? 0.5 : 0.6),
         height: 1,
         fontWeight: FontWeight.w800,
         color: dark ? const Color(0xFF3E2723) : Colors.white,

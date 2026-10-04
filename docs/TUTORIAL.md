@@ -23,7 +23,6 @@ deve ver se deu certo.
 9. [Lançar uma nova versão](#9-lançar-uma-nova-versão)
 10. [Problemas comuns e soluções](#10-problemas-comuns-e-soluções)
 11. [Resumo dos comandos](#11-resumo-dos-comandos)
-12. [Licença e vendas (R$ 69,00)](#12-licença-e-vendas-r-6900)
 
 ---
 
@@ -521,8 +520,6 @@ instalador. Dá para desligar em Configurações.
 | Para… | Comando |
 |---|---|
 | Conferir as ferramentas | `flutter doctor` |
-| Gerar uma licença | atalho **Gerador de Licenças MapLong** ou `node gerador.mjs` |
-| Testar o servidor de vendas | `npm test` (na pasta `licencas`) |
 | Baixar dependências | `flutter pub get` |
 | Rodar no Windows | `flutter run -d windows` |
 | Rodar no navegador | `flutter run -d chrome` |
@@ -545,24 +542,3 @@ instalador. Dá para desligar em Configurações.
   oficiais do time do Flutter e o *find-skills*). Para procurar outras:
   `npx skills find <assunto>`.
 - Estrutura do código e lista de recursos: veja o [README](../README.md).
-
----
-
-## 12. Licença e vendas (R$ 69,00)
-
-O MapLong tem **7 dias de teste grátis** com tudo liberado. Depois disso, sem
-licença, ele entra em **modo leitura**: abre, apresenta e exporta os mapas, mas
-não cria nem edita. Quem compra recebe um **código** e cola em
-**Configurações → Ativar licença**.
-
-- **Seu acesso total (proprietário)** já está ativado neste computador. O
-  código fica em `%USERPROFILE%\MapLong-Licencas\minha-licenca-de-proprietario.txt`
-  para ativar em outros computadores.
-- **Gerar um código à mão**: atalho **Gerador de Licenças MapLong** na área de
-  trabalho → digite o e-mail do cliente → o código é copiado.
-- **Venda automática** (Mercado Pago com Pix ou cartão; o código aparece na
-  tela e chega por e-mail): siga o passo a passo em
-  [licencas/README.md](../licencas/README.md).
-
-> **Importante:** faça uma cópia de segurança da pasta `MapLong-Licencas`. Ela
-> tem a chave privada, que é o que permite gerar códigos válidos.
