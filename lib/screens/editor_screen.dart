@@ -2151,6 +2151,49 @@ class _EditorScreenState extends State<EditorScreen> {
           tip: 'Gerar um tema de cores a partir de uma cor (The Color API)',
           onTap: () => showColorThemeDialog(context, editor),
         ),
+        RibbonButton(
+          icon: Icons.color_lens_outlined,
+          label: 'Ramo colorido',
+          onTap: null,
+          menu: [
+            for (final e in kColorModes.entries)
+              MenuItemButton(
+                trailingIcon: doc.colorMode == e.key
+                    ? Icon(Icons.check, size: 18, color: cs.primary)
+                    : null,
+                onPressed: () => _run(() => editor.setColorMode(e.key)),
+                child: Text(e.value),
+              ),
+          ],
+        ),
+        RibbonButton(
+          icon: Icons.draw_outlined,
+          label: 'Desenho à mão',
+          active: doc.handDrawn,
+          onTap: () => _run(() => editor.setHandDrawn(!doc.handDrawn)),
+        ),
+        RibbonButton(
+          icon: Icons.texture,
+          label: 'Textura',
+          onTap: null,
+          menu: [
+            MenuItemButton(
+              trailingIcon: doc.texture == null
+                  ? Icon(Icons.check, size: 18, color: cs.primary)
+                  : null,
+              onPressed: () => _run(() => editor.setTexture(null)),
+              child: const Text('Nenhuma'),
+            ),
+            for (final e in kTextures.entries)
+              MenuItemButton(
+                trailingIcon: doc.texture == e.key
+                    ? Icon(Icons.check, size: 18, color: cs.primary)
+                    : null,
+                onPressed: () => _run(() => editor.setTexture(e.key)),
+                child: Text(e.value),
+              ),
+          ],
+        ),
         const RibbonDivider(),
         RibbonButton(
           icon: doc.autoLayout ? Icons.toggle_on : Icons.toggle_off_outlined,

@@ -30,6 +30,10 @@ class Library extends ChangeNotifier {
   static const _kLicense = 'maplong.license.code';
   static const _kTrialStart = 'maplong.license.trialStart';
   static const _kLastSeen = 'maplong.license.lastSeen';
+  static const _kSavedThemes = 'maplong.themes.saved';
+
+  /// Temas salvos pelo usuário.
+  List<SavedTheme> savedThemes = [];
 
   final DateTime Function() _clock;
 
@@ -169,6 +173,10 @@ class Library extends ChangeNotifier {
     };
     checkUpdates = _prefs.getBool(_kCheckUpdates) ?? true;
     welcomeSeen = _prefs.getBool(_kWelcomeSeen) ?? false;
+    savedThemes = [
+      for (final raw in _prefs.getStringList(_kSavedThemes) ?? const [])
+        ?_decodeTheme(raw),
+    ];
     await _loadLicense();
 
     final ids = _prefs.getStringList(_kIndex) ?? const <String>[];
@@ -208,6 +216,36 @@ class Library extends ChangeNotifier {
     }
 
     isLoaded = true;
+    notifyListeners();
+  }
+
+  // ------------------------------------------------------------ temas salvos
+
+  static SavedTheme? _decodeTheme(String raw) {
+    try {
+      return SavedTheme.fromJson(jsonDecode(raw));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Salva (ou substitui, pelo nome) um tema personalizado.
+  Future<void> saveTheme(SavedTheme t) async {
+    savedThemes = [
+      t,
+      ...savedThemes.where((s) => s.name.toLowerCase() != t.name.toLowerCase()),
+    ];
+    await _prefs.setStringList(_kSavedThemes, [
+      for (final s in savedThemes) jsonEncode(s.toJson()),
+    ]);
+    notifyListeners();
+  }
+
+  Future<void> deleteTheme(String name) async {
+    savedThemes = savedThemes.where((s) => s.name != name).toList();
+    await _prefs.setStringList(_kSavedThemes, [
+      for (final s in savedThemes) jsonEncode(s.toJson()),
+    ]);
     notifyListeners();
   }
 

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplong/editor_controller.dart';
+import 'package:maplong/layout.dart';
 import 'package:maplong/library.dart';
 import 'package:maplong/models.dart';
 import 'package:maplong/templates.dart';
@@ -150,6 +151,82 @@ void main() {
     final note = ed.doc.nodes[ed.addStickyNote(const Offset(-500, 500))]!;
     expect(note.shape, 'sticky');
     expect(note.borderStyle, 'none');
+    ed.dispose();
+  });
+
+  test('ramo colorido: uma cor, por nível e arco-íris', () async {
+    final ed = await _editor();
+    final pal = ed.doc.theme.palette;
+    final mains = [for (final i in ed.doc.root.childrenIds) ed.doc.nodes[i]!];
+    final sub = ed.doc.nodes[mains.first.childrenIds.first]!;
+
+    ed.setColorMode('single');
+    expect(mains.every((n) => n.color == pal.first), isTrue);
+
+    ed.setColorMode('level');
+    expect(mains.every((n) => n.color == pal[0]), isTrue);
+    expect(sub.color, pal[1]);
+
+    ed.setColorMode('rainbow');
+    expect(mains[1].fillColor, mains[1].color);
+    expect(mains[1].textColor, '#FFFFFF');
+
+    ed.setColorMode('branch');
+    expect(mains[1].color, pal[1]);
+    expect(mains[1].fillColor, isNull);
+    ed.dispose();
+  });
+
+  test('alinhar tópicos do mesmo nível forma colunas', () async {
+    final ed = await _editor();
+    final doc = ed.doc..layout = 'right';
+    ed.setAlignLevels(true);
+    final level2 = [
+      for (final m in doc.root.childrenIds)
+        for (final c in doc.nodes[m]!.childrenIds) doc.nodes[c]!,
+    ];
+    double left(MindMapNode n) => n.pos.dx - estimateNodeSize(n).width / 2;
+    final lefts = level2.map(left).toSet();
+    expect(lefts.length, 1, reason: 'todos começam na mesma coluna');
+    ed.dispose();
+  });
+
+  test('sobreposição permitida não afasta tópicos', () async {
+    final ed = await _editor();
+    ed.setAllowOverlap(true);
+    final a = ed.doc.nodes[ed.doc.root.childrenIds.first]!;
+    final p = a.pos;
+    final f = ed.addFloating(p, edit: false);
+    ed.arrangeNow();
+    expect(ed.doc.nodes[f]!.pos, p, reason: 'o flutuante não foi afastado');
+    ed.dispose();
+  });
+
+  test('tema personalizado é salvo e aplicado', () async {
+    final ed = await _editor();
+    ed
+      ..setMapFont('Georgia')
+      ..setHandDrawn(true)
+      ..setBackground('#FFF8F0');
+    await ed.library.saveTheme(ed.themeSnapshot('Meu estilo'));
+    expect(ed.library.savedThemes.single.name, 'Meu estilo');
+
+    final again = Library(prefs: await SharedPreferences.getInstance());
+    await again.load();
+    final saved = again.savedThemes.single;
+    expect(saved.font, 'Georgia');
+    expect(saved.handDrawn, isTrue);
+
+    ed
+      ..setMapFont(null)
+      ..setHandDrawn(false)
+      ..applySavedTheme(saved);
+    expect(ed.doc.fontFamily, 'Georgia');
+    expect(ed.doc.handDrawn, isTrue);
+    expect(ed.doc.background, '#FFF8F0');
+    expect(ed.doc.themeId, 'custom');
+    await again.deleteTheme('Meu estilo');
+    expect(again.savedThemes, isEmpty);
     ed.dispose();
   });
 

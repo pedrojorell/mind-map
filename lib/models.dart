@@ -282,7 +282,121 @@ const kThemes = <MapTheme>[
     rootFill: '#9B5DE5',
     background: '#14111F',
   ),
+  MapTheme(
+    'aurora',
+    'Aurora',
+    ['#3A86FF', '#8338EC', '#FF006E', '#FB5607', '#FFBE0B', '#06D6A0'],
+    rootFill: '#1D3557',
+    background: '#F8F9FF',
+  ),
+  MapTheme(
+    'menta',
+    'Menta',
+    ['#2A9D8F', '#43AA8B', '#90BE6D', '#4D908E', '#577590', '#277DA1'],
+    rootFill: '#264653',
+    background: '#F2FBF8',
+  ),
+  MapTheme(
+    'lavanda',
+    'Lavanda',
+    ['#7B68EE', '#B57EDC', '#9370DB', '#C084FC', '#8E7CC3', '#6A5ACD'],
+    rootFill: '#4B3F72',
+    background: '#F8F5FF',
+  ),
+  MapTheme(
+    'cafe',
+    'Café',
+    ['#A0522D', '#C68B59', '#8D6E63', '#D4A373', '#6F4E37', '#B08968'],
+    rootFill: '#4E342E',
+    background: '#FBF6F0',
+  ),
+  MapTheme(
+    'corporativo',
+    'Corporativo',
+    ['#1F4E79', '#2E75B6', '#548235', '#BF9000', '#C55A11', '#7030A0'],
+    rootFill: '#1F3864',
+    background: '#FFFFFF',
+  ),
+  MapTheme(
+    'outono',
+    'Outono',
+    ['#D62828', '#F77F00', '#FCBF49', '#A44A3F', '#E76F51', '#BC6C25'],
+    rootFill: '#6A040F',
+    background: '#FFF9F2',
+  ),
+  MapTheme(
+    'praia',
+    'Praia',
+    ['#00A6FB', '#F4A261', '#2EC4B6', '#E9C46A', '#0582CA', '#FF9F1C'],
+    rootFill: '#006494',
+    background: '#F4FBFF',
+  ),
+  MapTheme(
+    'noite',
+    'Noite',
+    ['#7AA2F7', '#BB9AF7', '#9ECE6A', '#E0AF68', '#F7768E', '#2AC3DE'],
+    rootFill: '#3D59A1',
+    background: '#1A1B26',
+  ),
 ];
+
+/// Tema salvo pelo usuário ("Salvar como tema personalizado").
+class SavedTheme {
+  const SavedTheme({
+    required this.name,
+    required this.colors,
+    this.background,
+    this.font,
+    this.handDrawn = false,
+    this.connectorStyle = 'curved',
+    this.connectorWidth = 2.5,
+  });
+
+  final String name;
+
+  /// A 1ª cor é a da ideia principal; as demais colorem os ramos.
+  final List<String> colors;
+  final String? background;
+  final String? font;
+  final bool handDrawn;
+  final String connectorStyle;
+  final double connectorWidth;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'colors': colors,
+    if (background != null) 'background': background,
+    if (font != null) 'font': font,
+    if (handDrawn) 'handDrawn': true,
+    'connectorStyle': connectorStyle,
+    'connectorWidth': connectorWidth,
+  };
+
+  static SavedTheme? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final colors = (j['colors'] as List?)?.whereType<String>().toList();
+    if (colors == null || colors.isEmpty) return null;
+    return SavedTheme(
+      name: (j['name'] as String?) ?? 'Meu tema',
+      colors: colors,
+      background: j['background'] as String?,
+      font: j['font'] as String?,
+      handDrawn: j['handDrawn'] == true,
+      connectorStyle: kConnectorStyles.containsKey(j['connectorStyle'])
+          ? j['connectorStyle'] as String
+          : 'curved',
+      connectorWidth: ((j['connectorWidth'] as num?) ?? 2.5).toDouble(),
+    );
+  }
+
+  MapTheme get preview => MapTheme(
+    'saved',
+    name,
+    colors.length > 1 ? colors.sublist(1) : colors,
+    rootFill: colors.first,
+    background: background,
+  );
+}
 
 MapTheme themeById(String? id) =>
     kThemes.firstWhere((t) => t.id == id, orElse: () => kThemes.first);

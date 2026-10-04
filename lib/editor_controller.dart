@@ -200,7 +200,9 @@ class EditorController extends ChangeNotifier {
   /// Organiza a árvore e afasta tópicos flutuantes que ficaram por cima.
   void _arrange() {
     autoLayout(doc, sizes);
-    resolveOverlaps(doc, sizes, onlyFloating: true, anchorId: editingId);
+    if (!doc.allowOverlap) {
+      resolveOverlaps(doc, sizes, onlyFloating: true, anchorId: editingId);
+    }
   }
 
   bool _unstackScheduled = false;
@@ -208,7 +210,7 @@ class EditorController extends ChangeNotifier {
   /// Com a posição livre, afasta tópicos que ficaram um sobre o outro
   /// (por exemplo, quando um tópico cresce enquanto o texto é digitado).
   void _requestUnstack() {
-    if (_unstackScheduled) return;
+    if (_unstackScheduled || doc.allowOverlap) return;
     _unstackScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _unstackScheduled = false;
@@ -380,7 +382,12 @@ class EditorController extends ChangeNotifier {
   MindMapNode _newChildOf(MindMapNode parent, {String? text}) {
     final isRootChild = parent.id == doc.rootId;
     final idx = parent.childrenIds.length;
-    final color = isRootChild ? doc.branchColor(idx) : parent.color;
+    final palette = doc.theme.palette;
+    final color = switch (doc.colorMode) {
+      'single' => palette.first,
+      'level' => palette[doc.depthOf(parent.id) % palette.length],
+      _ => isRootChild ? doc.branchColor(idx) : parent.color,
+    };
     final side = parent.id == doc.rootId
         ? switch (doc.layout) {
             'right' => 1,
@@ -405,6 +412,8 @@ class EditorController extends ChangeNotifier {
       color: color,
       fontSize: isRootChild ? 17 : 15,
       shape: isRootChild ? 'pill' : 'underline',
+      fillColor: isRootChild && doc.colorMode == 'rainbow' ? color : null,
+      textColor: isRootChild && doc.colorMode == 'rainbow' ? '#FFFFFF' : null,
     );
     final size = estimateNodeSize(n);
     n.pos = Offset(
@@ -852,7 +861,7 @@ class EditorController extends ChangeNotifier {
       turnedOff = true;
     }
     // O tópico solto fica onde o usuário deixou; os vizinhos abrem espaço.
-    resolveOverlaps(doc, sizes, anchorId: id);
+    if (!doc.allowOverlap) resolveOverlaps(doc, sizes, anchorId: id);
     doc.touch();
     _changed();
     return turnedOff;
@@ -1069,6 +1078,7 @@ class EditorController extends ChangeNotifier {
     doc.themeId = themeId;
     final t = doc.theme;
     doc.themeId = previous;
+    final mode = doc.colorMode;
     mutate(() {
       doc.themeId = t.id;
       doc.background = t.background;
@@ -1078,14 +1088,30 @@ class EditorController extends ChangeNotifier {
         ..fillColor = t.rootFill
         ..textColor = t.rootText;
       for (var i = 0; i < root.childrenIds.length; i++) {
-        final color = t.palette[i % t.palette.length];
+        final branchColor = t.palette[i % t.palette.length];
         for (final id in doc.subtreeIds(root.childrenIds[i])) {
           final n = doc.nodes[id]!;
+          final depth = doc.depthOf(id);
+          final color = switch (mode) {
+            'single' => t.palette.first,
+            'level' => t.palette[(depth - 1) % t.palette.length],
+            _ => branchColor,
+          };
           n.color = color;
-          // Preenchimentos com a cor antiga do ramo acompanham o novo tema.
-          if (n.fillColor != null &&
+          if (mode == 'rainbow' && depth == 1) {
+            n
+              ..fillColor = color
+              ..textColor = '#FFFFFF';
+          } else if (n.textColor == '#FFFFFF' && n.fillColor != null) {
+            // Desfaz o preenchimento do modo arco-íris.
+            n
+              ..fillColor = null
+              ..textColor = null;
+          } else if (n.fillColor != null &&
+              n.fillColor != kNoFill &&
               n.fillColor != '#FFFFFF' &&
               n.fillColor != '#1F2333') {
+            // Preenchimentos com a cor antiga do ramo acompanham o novo tema.
             n.fillColor = color;
           }
         }
@@ -1095,6 +1121,90 @@ class EditorController extends ChangeNotifier {
 
   void setNumbering(bool on) {
     mutate(() => doc.numbering = on, relayout: true);
+  }
+
+  // ---------------------------------------------------------- estilo de página
+
+  /// Fonte de todos os tópicos (os que têm fonte própria não mudam).
+  void setMapFont(String? font) =>
+      mutate(() => doc.fontFamily = font, relayout: true);
+
+  void setHandDrawn(bool on) => mutate(() => doc.handDrawn = on);
+
+  void setTexture(String? texture) => mutate(() => doc.texture = texture);
+
+  void setBackgroundImage(String? data) =>
+      mutate(() => doc.backgroundImage = data);
+
+  void setWatermark(String? text) => mutate(
+    () => doc.watermark = text == null || text.trim().isEmpty
+        ? null
+        : text.trim(),
+  );
+
+  void setRelationsOnTop(bool on) => mutate(() => doc.relationsOnTop = on);
+
+  void setAlignLevels(bool on) {
+    mutate(() {
+      doc.alignLevels = on;
+      if (doc.autoLayout) _arrange();
+    });
+  }
+
+  /// Permite tópicos sobrepostos (sem afastar automaticamente).
+  void setAllowOverlap(bool on) {
+    mutate(() {
+      doc.allowOverlap = on;
+      if (!on && doc.autoLayout) _arrange();
+    });
+    if (!on && !doc.autoLayout) _requestUnstack();
+  }
+
+  /// Volta o espaçamento entre tópicos ao padrão.
+  void resetSpacing() => setSpacing(h: 64, v: 18);
+
+  /// O visual atual do mapa, para salvar como tema personalizado.
+  SavedTheme themeSnapshot(String name) {
+    final root = doc.root;
+    final colors = <String>[root.fillColor ?? doc.theme.rootFill];
+    for (final c in root.childrenIds) {
+      final color = doc.nodes[c]?.color;
+      if (color != null && !colors.contains(color)) colors.add(color);
+    }
+    for (final c in doc.theme.palette) {
+      if (colors.length >= 7) break;
+      if (!colors.contains(c)) colors.add(c);
+    }
+    return SavedTheme(
+      name: name,
+      colors: colors,
+      background: doc.background,
+      font: doc.fontFamily,
+      handDrawn: doc.handDrawn,
+      connectorStyle: doc.connectorStyle,
+      connectorWidth: doc.connectorWidth,
+    );
+  }
+
+  /// Aplica um tema salvo pelo usuário.
+  void applySavedTheme(SavedTheme s) {
+    if (_blocked()) return;
+    applyCustomPalette(s.colors);
+    mutate(() {
+      doc
+        ..background = s.background
+        ..fontFamily = s.font
+        ..handDrawn = s.handDrawn
+        ..connectorStyle = s.connectorStyle
+        ..connectorWidth = s.connectorWidth;
+    }, relayout: true);
+  }
+
+  /// Muda a forma de colorir os ramos e recolore o mapa.
+  void setColorMode(String mode) {
+    if (!kColorModes.containsKey(mode)) return;
+    doc.colorMode = mode;
+    applyTheme(doc.themeId);
   }
 
   void setBackground(String? hex) {

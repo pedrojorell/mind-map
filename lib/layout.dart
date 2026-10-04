@@ -166,24 +166,68 @@ class _Layout {
     return _heights[id] = h;
   }
 
-  void _horizontal(String parentId, List<String> children, int dir) {
+  void _horizontal(
+    String parentId,
+    List<String> children,
+    int dir, [
+    int depth = 0,
+  ]) {
     if (children.isEmpty) return;
     final parent = node(parentId);
     final pw = sizeOf(parentId).width;
     final total =
         children.fold<double>(0, (s, k) => s + _subtreeHeight(k)) +
         vGap * (children.length - 1);
+    // Colunas alinhadas só na árvore da ideia principal.
+    final aligned =
+        doc.alignLevels &&
+        const {'balanced', 'right', 'left', 'logic'}.contains(doc.layout) &&
+        _inMainTree(parentId);
     var y = parent.pos.dy - total / 2;
     for (final id in children) {
       final h = _subtreeHeight(id);
       final cw = sizeOf(id).width;
-      node(id).pos = Offset(
-        parent.pos.dx + dir * (pw / 2 + hGap + cw / 2),
-        y + h / 2,
-      );
-      _horizontal(id, kids(id), dir);
+      final x = aligned
+          ? _columnStart(depth + 1, dir) + dir * cw / 2
+          : parent.pos.dx + dir * (pw / 2 + hGap + cw / 2);
+      node(id).pos = Offset(x, y + h / 2);
+      _horizontal(id, kids(id), dir, depth + 1);
       y += h + vGap;
     }
+  }
+
+  bool _inMainTree(String id) {
+    var cur = doc.nodes[id];
+    while (cur?.parentId != null) {
+      cur = doc.nodes[cur!.parentId];
+    }
+    return cur?.id == doc.rootId;
+  }
+
+  /// Largura do tópico mais largo de cada nível da árvore principal.
+  late final List<double> _levelWidths = () {
+    final out = <double>[];
+    void walk(String id, int depth) {
+      if (out.length <= depth) out.add(0);
+      out[depth] = max(out[depth], sizeOf(id).width);
+      for (final c in kids(id)) {
+        walk(c, depth + 1);
+      }
+    }
+
+    walk(doc.rootId, 0);
+    return out;
+  }();
+
+  /// Borda interna da coluna do nível [depth] (x a partir do qual os tópicos
+  /// desse nível começam, no lado [dir]).
+  double _columnStart(int depth, int dir) {
+    final root = doc.root;
+    var x = root.pos.dx + dir * (sizeOf(root.id).width / 2 + hGap);
+    for (var d = 1; d < depth && d < _levelWidths.length; d++) {
+      x += dir * (_levelWidths[d] + hGap);
+    }
+    return x;
   }
 
   // ------------------------------------------------------ vertical (organograma)

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../editor_controller.dart';
+import '../media.dart';
 import '../models.dart';
 import 'elements_panel.dart';
 import 'markers.dart';
 import 'media_panel.dart';
+import 'mind_map_canvas.dart' show TexturePainter;
 import 'shapes.dart';
 
 /// Abas do painel lateral do editor.
@@ -403,23 +405,15 @@ class PropertiesPanel extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        dense: true,
-        title: const Text('Numerar tópicos'),
-        subtitle: const Text('Mostra 1, 1.1, 1.2… antes do texto'),
-        value: doc.numbering,
-        onChanged: editor.setNumbering,
+      Row(
+        children: [
+          Expanded(child: _Section('Espaçamento entre tópicos')),
+          TextButton(
+            onPressed: editor.resetSpacing,
+            child: const Text('Redefinir'),
+          ),
+        ],
       ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        dense: true,
-        title: const Text('Organização automática'),
-        subtitle: const Text('Reposiciona os tópicos ao editar'),
-        value: doc.autoLayout,
-        onChanged: editor.setAutoLayout,
-      ),
-      _Section('Espaçamento entre tópicos'),
       _SliderRow(
         label: 'Horizontal',
         value: doc.hGap,
@@ -436,7 +430,27 @@ class PropertiesPanel extends StatelessWidget {
         divisions: 14,
         onChanged: (v) => editor.setSpacing(v: v),
       ),
-      _Section('Tema de cores'),
+      _Check(
+        label: 'Posicionamento livre dos ramos',
+        value: !doc.autoLayout,
+        onChanged: (v) => editor.setAutoLayout(!v),
+      ),
+      _Check(
+        label: 'Alinhar tópicos do mesmo nível',
+        value: doc.alignLevels,
+        onChanged: editor.setAlignLevels,
+      ),
+      _Check(
+        label: 'Permitir sobreposição de tópicos',
+        value: doc.allowOverlap,
+        onChanged: editor.setAllowOverlap,
+      ),
+      _Check(
+        label: 'Numerar tópicos (1, 1.1, 1.2…)',
+        value: doc.numbering,
+        onChanged: editor.setNumbering,
+      ),
+      _Section('Tema'),
       GridView.count(
         crossAxisCount: 2,
         shrinkWrap: true,
@@ -454,7 +468,71 @@ class PropertiesPanel extends StatelessWidget {
             ),
         ],
       ),
-      _Section('Fundo'),
+      if (editor.library.savedThemes.isNotEmpty) ...[
+        _Label('Meus temas'),
+        for (final s in editor.library.savedThemes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: _PickTile(
+                      selected: false,
+                      tooltip: 'Aplicar "${s.name}"',
+                      onTap: () => editor.applySavedTheme(s),
+                      child: ThemeSwatch(theme: s.preview),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Excluir tema',
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  onPressed: () => editor.library.deleteTheme(s.name),
+                ),
+              ],
+            ),
+          ),
+      ],
+      _Label('Ramo colorido'),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final e in kColorModes.entries)
+            _PickTile(
+              selected: doc.colorMode == e.key,
+              tooltip: e.value,
+              padding: const EdgeInsets.all(5),
+              onTap: () => editor.setColorMode(e.key),
+              child: SizedBox(
+                width: 52,
+                height: 28,
+                child: CustomPaint(painter: _ColorModeGlyph(e.key, doc.theme)),
+              ),
+            ),
+        ],
+      ),
+      _Label('Fonte do tema'),
+      FontPicker(
+        value: doc.fontFamily,
+        defaultLabel: 'Padrão do MapLong',
+        onChanged: editor.setMapFont,
+      ),
+      _Check(
+        label: 'Desenho à mão',
+        value: doc.handDrawn,
+        onChanged: editor.setHandDrawn,
+      ),
+      const SizedBox(height: 4),
+      OutlinedButton.icon(
+        icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+        label: const Text('Salvar como tema personalizado'),
+        onPressed: () => _saveTheme(context),
+      ),
+      _Section('Plano de fundo'),
+      _Label('Cor'),
       ColorRow(
         colors: const [
           '',
@@ -471,6 +549,79 @@ class PropertiesPanel extends StatelessWidget {
         selected: doc.background ?? '',
         onPick: (c) => editor.setBackground(c.isEmpty ? null : c),
       ),
+      _Label('Textura'),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          _PickTile(
+            selected: doc.texture == null,
+            tooltip: 'Nenhuma',
+            padding: const EdgeInsets.all(4),
+            onTap: () => editor.setTexture(null),
+            child: const SizedBox(
+              width: 40,
+              height: 30,
+              child: Icon(Icons.block, size: 18),
+            ),
+          ),
+          for (final e in kTextures.entries)
+            _PickTile(
+              selected: doc.texture == e.key,
+              tooltip: e.value,
+              padding: const EdgeInsets.all(4),
+              onTap: () => editor.setTexture(e.key),
+              child: SizedBox(
+                width: 40,
+                height: 30,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: CustomPaint(
+                    painter: TexturePainter(
+                      kind: e.key,
+                      color: cs.onSurface.withValues(alpha: 0.45),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+      _Label('Imagem'),
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.wallpaper, size: 18),
+              label: Text(
+                doc.backgroundImage == null ? 'Escolher imagem' : 'Trocar',
+              ),
+              onPressed: () async {
+                final img = await pickImage(context);
+                if (img != null) editor.setBackgroundImage(img.data);
+              },
+            ),
+          ),
+          if (doc.backgroundImage != null)
+            IconButton(
+              tooltip: 'Remover imagem de fundo',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => editor.setBackgroundImage(null),
+            ),
+        ],
+      ),
+      _Check(
+        label: "Inserir marca d'água",
+        value: doc.watermark != null,
+        onChanged: (v) => editor.setWatermark(v ? 'MapLong' : null),
+      ),
+      if (doc.watermark != null)
+        CommitTextField(
+          key: ValueKey('wm_${doc.watermark}'),
+          value: doc.watermark!,
+          label: "Texto da marca d'água",
+          onCommit: (v) => editor.setWatermark(v.trim().isEmpty ? null : v),
+        ),
       _Section('Ramificações'),
       SegmentedButton<String>(
         showSelectedIcon: false,
@@ -489,7 +640,46 @@ class PropertiesPanel extends StatelessWidget {
         divisions: 14,
         onChanged: (v) => editor.setConnector(width: v),
       ),
+      _Check(
+        label: 'Relações por cima dos tópicos',
+        value: doc.relationsOnTop,
+        onChanged: editor.setRelationsOnTop,
+      ),
     ];
+  }
+
+  Future<void> _saveTheme(BuildContext context) async {
+    final c = TextEditingController(text: 'Meu tema');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Salvar tema personalizado'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nome do tema'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, c.text),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => c.dispose());
+    if (name == null || name.trim().isEmpty) return;
+    await editor.library.saveTheme(editor.themeSnapshot(name.trim()));
+    if (context.mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text('Tema "${name.trim()}" salvo em "Meus temas".')),
+      );
+    }
   }
 
   // -------------------------------------------------------------- marcadores
@@ -900,6 +1090,73 @@ class ThemeSwatch extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Miniatura de cada modo de "Ramo colorido".
+class _ColorModeGlyph extends CustomPainter {
+  _ColorModeGlyph(this.mode, this.theme);
+  final String mode;
+  final MapTheme theme;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pal = theme.palette;
+    final root = parseHex(theme.rootFill) ?? Colors.indigo;
+    final c = Offset(size.width * 0.3, size.height / 2);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: c, width: 14, height: 9),
+        const Radius.circular(3),
+      ),
+      Paint()..color = root,
+    );
+    for (var i = 0; i < 3; i++) {
+      final y = size.height * (0.18 + i * 0.32);
+      final color =
+          parseHex(switch (mode) {
+            'single' => pal.first,
+            'level' => pal[0],
+            _ => pal[i % pal.length],
+          }) ??
+          Colors.grey;
+      final end = Offset(size.width * 0.66, y);
+      canvas.drawLine(
+        c + const Offset(7, 0),
+        end,
+        Paint()
+          ..color = color
+          ..strokeWidth = 1.6,
+      );
+      final r = RRect.fromRectAndRadius(
+        Rect.fromLTWH(end.dx, y - 3.5, size.width * 0.3, 7),
+        const Radius.circular(3.5),
+      );
+      if (mode == 'rainbow') {
+        canvas.drawRRect(r, Paint()..color = color);
+      } else {
+        canvas.drawRRect(
+          r,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.3,
+        );
+      }
+      if (mode == 'level') {
+        canvas.drawLine(
+          Offset(r.right, y),
+          Offset(size.width, y),
+          Paint()
+            ..color = parseHex(pal[1 % pal.length]) ?? Colors.grey
+            ..strokeWidth = 1.3,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ColorModeGlyph old) =>
+      old.mode != mode || old.theme != theme;
 }
 
 /// Ícone desenhado de uma estrutura de mapa.

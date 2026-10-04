@@ -11,6 +11,7 @@ import 'package:vector_math/vector_math_64.dart' as vm;
 
 import '../editor_controller.dart';
 import '../layout.dart';
+import '../media.dart';
 import '../models.dart';
 import 'node_view.dart';
 import 'render_helpers.dart';
@@ -448,6 +449,20 @@ class MindMapCanvasState extends State<MindMapCanvas> {
     }
 
     final onBg = bg.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+    final relations = Positioned.fill(
+      child: IgnorePointer(
+        child: CustomPaint(
+          painter: _RelationsPainter(
+            doc: doc,
+            sizes: editor.sizes,
+            visibleIds: visibleIds,
+            labelBg: bg,
+            linkingFrom: editor.linkingFrom,
+            hover: _hover,
+          ),
+        ),
+      ),
+    );
     // O contraste automático do texto considera o fundo do mapa.
     return Theme(
       data: theme.copyWith(scaffoldBackgroundColor: bg),
@@ -474,7 +489,30 @@ class MindMapCanvasState extends State<MindMapCanvas> {
         child: Stack(
           children: [
             Positioned.fill(child: ColoredBox(color: bg)),
-            if (widget.showGrid)
+            if (doc.backgroundImage case final img?)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Image.memory(
+                    imageBytes(img),
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            if (doc.texture case final texture?)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: TexturePainter(
+                      transform: _transform,
+                      kind: texture,
+                      color: onBg.withValues(alpha: 0.13),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.showGrid && doc.texture == null)
               Positioned.fill(
                 child: CustomPaint(
                   painter: _GridPainter(
@@ -544,22 +582,24 @@ class MindMapCanvasState extends State<MindMapCanvas> {
                                 ),
                               ),
                             ),
+                            if (!doc.relationsOnTop) relations,
                             ...nodeWidgets,
                             ...toggles,
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: CustomPaint(
-                                  painter: _RelationsPainter(
-                                    doc: doc,
-                                    sizes: editor.sizes,
-                                    visibleIds: visibleIds,
-                                    labelBg: bg,
-                                    linkingFrom: editor.linkingFrom,
-                                    hover: _hover,
+                            if (doc.relationsOnTop) relations,
+                            if (doc.watermark case final mark?)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: CustomPaint(
+                                    painter: _WatermarkPainter(
+                                      doc: doc,
+                                      sizes: editor.sizes,
+                                      visibleIds: visibleIds,
+                                      text: mark,
+                                      color: onBg.withValues(alpha: 0.09),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -1447,4 +1487,164 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GridPainter old) => old.color != color;
+}
+
+/// Textura do fundo (desenhada em coordenadas de tela, acompanha o zoom).
+/// Sem [transform], desenha a amostra parada (miniaturas do painel).
+class TexturePainter extends CustomPainter {
+  TexturePainter({this.transform, required this.kind, required this.color})
+    : super(repaint: transform);
+
+  final TransformationController? transform;
+  final String kind;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final m = transform?.value;
+    final s = m?.getMaxScaleOnAxis() ?? 0.6;
+    var step = (kind == 'lines' ? 34.0 : 26.0) * s;
+    while (step < 12) {
+      step *= 2;
+    }
+    final t = m?.getTranslation();
+    final ox = (t?.x ?? 0) % step, oy = (t?.y ?? 0) % step;
+    final p = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round;
+    switch (kind) {
+      case 'grid':
+        for (var x = ox; x < size.width; x += step) {
+          canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
+        }
+        for (var y = oy; y < size.height; y += step) {
+          canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
+        }
+      case 'lines':
+        for (var y = oy; y < size.height; y += step) {
+          canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
+        }
+      case 'diagonal':
+        final d = size.width + size.height;
+        for (var x = ox - size.height; x < d; x += step) {
+          canvas.drawLine(
+            Offset(x, 0),
+            Offset(x + size.height, size.height),
+            p,
+          );
+        }
+      case 'cross':
+        final a = math.max(2.0, step * 0.12);
+        for (var x = ox; x < size.width; x += step) {
+          for (var y = oy; y < size.height; y += step) {
+            canvas
+              ..drawLine(Offset(x - a, y), Offset(x + a, y), p)
+              ..drawLine(Offset(x, y - a), Offset(x, y + a), p);
+          }
+        }
+      case 'paper':
+        // Fibras do papel: pontinhos fixos em cada célula.
+        p.strokeWidth = 1.4;
+        final pts = <Offset>[];
+        final cx0 = ((t?.x ?? 0) / step).floor();
+        final cy0 = ((t?.y ?? 0) / step).floor();
+        for (var i = -1; i * step < size.width + step; i++) {
+          for (var j = -1; j * step < size.height + step; j++) {
+            final rnd = math.Random(
+              (i - cx0) * 73856093 ^ (j - cy0) * 19349663,
+            );
+            for (var k = 0; k < 4; k++) {
+              pts.add(
+                Offset(
+                  ox + (i + rnd.nextDouble()) * step,
+                  oy + (j + rnd.nextDouble()) * step,
+                ),
+              );
+            }
+          }
+        }
+        canvas.drawPoints(PointMode.points, pts, p);
+      default: // pontos
+        p.strokeWidth = 2.6;
+        final pts = <Offset>[
+          for (var x = ox; x < size.width; x += step)
+            for (var y = oy; y < size.height; y += step) Offset(x, y),
+        ];
+        canvas.drawPoints(PointMode.points, pts, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant TexturePainter old) =>
+      old.kind != kind || old.color != color;
+}
+
+/// Marca d'água repetida na diagonal sobre a área do mapa.
+class _WatermarkPainter extends CustomPainter {
+  _WatermarkPainter({
+    required this.doc,
+    required this.sizes,
+    required this.visibleIds,
+    required this.text,
+    required this.color,
+  });
+
+  final MindMapDoc doc;
+  final Map<String, Size> sizes;
+  final Set<String> visibleIds;
+  final String text;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Rect? area;
+    for (final id in visibleIds) {
+      final n = doc.nodes[id]!;
+      final s = sizes[id] ?? estimateNodeSize(n);
+      final r = Rect.fromCenter(
+        center: n.pos + kOrigin,
+        width: s.width,
+        height: s.height,
+      );
+      area = area == null ? r : area.expandToInclude(r);
+    }
+    if (area == null) return;
+    area = area.inflate(140);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: 30,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final dx = tp.width + 120, dy = tp.height + 110;
+    canvas
+      ..save()
+      ..clipRect(area);
+    var row = 0;
+    for (var y = area.top; y < area.bottom + dy; y += dy, row++) {
+      for (
+        var x = area.left - (row.isOdd ? dx / 2 : 0);
+        x < area.right + dx;
+        x += dx
+      ) {
+        canvas
+          ..save()
+          ..translate(x, y)
+          ..rotate(-math.pi / 7);
+        tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+        canvas.restore();
+      }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _WatermarkPainter old) => true;
 }
