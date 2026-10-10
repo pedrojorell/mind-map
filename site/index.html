@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MapLong — Mapas mentais profissionais para Windows</title>
+  <meta name="description" content="Crie mapas mentais, planos de projeto e resumos de estudo com o MapLong. Funciona sem internet, salva tudo no seu computador e não tem mensalidade.">
+  <meta name="theme-color" content="#3B4CF5">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MapLong — Mapas mentais profissionais">
+  <meta property="og:description" content="Organize ideias, projetos e estudos em mapas mentais. Pagamento único, sem mensalidade.">
+  <meta property="og:image" content="img/editor.png">
+  <link rel="icon" href="img/icone.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="aviso-config" hidden>
+    Falta o link de pagamento: abra <strong>site/config.js</strong> e preencha <code>linkPagamento</code>.
+    (Este aviso só aparece no seu computador.)
+  </div>
+
+  <header class="topo">
+    <div class="container topo-linha">
+      <a class="marca" href="#inicio" aria-label="MapLong, início">
+        <img src="img/simbolo.png" alt="" width="73" height="30">
+        <span class="marca-texto">MAP<span>LONG</span></span>
+      </a>
+      <nav class="menu" aria-label="Seções">
+        <a href="#recursos">Recursos</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#preco">Preço</a>
+        <a href="#duvidas">Dúvidas</a>
+      </nav>
+      <a class="botao botao-pequeno" data-comprar href="#preco">Comprar</a>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <!-- ============================== Destaque -->
+    <section class="destaque">
+      <div class="container destaque-grade">
+        <div class="destaque-texto">
+          <p class="selo">Para Windows · Funciona sem internet</p>
+          <h1>Organize ideias, projetos e estudos em <span class="gradiente">mapas mentais</span> profissionais</h1>
+          <p class="subtitulo">
+            O MapLong transforma qualquer assunto em um mapa claro e bonito em minutos.
+            Tudo fica salvo no seu computador, com 8 estruturas, 27 formas, temas,
+            imagens, documentos, tarefas e exportação para PDF, Word e Excel.
+          </p>
+          <div class="acoes">
+            <a class="botao" data-comprar href="#preco">Quero o MapLong</a>
+            <a class="botao botao-claro" href="#recursos">Ver recursos</a>
+          </div>
+          <p class="nota-preco">
+            Pagamento único de <strong data-preco>R$ 69,00</strong> · sem mensalidade ·
+            garantia de <span data-garantia>7</span> dias
+          </p>
+        </div>
+        <figure class="janela">
+          <div class="janela-barra"><i></i><i></i><i></i></div>
+          <img src="img/editor.png" alt="Editor do MapLong com um mapa mental de lançamento de produto" width="1440" height="900">
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============================== Garantias -->
+    <section class="faixa-confianca" aria-label="Vantagens">
+      <div class="container confianca-grade">
+        <div><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3Z"/></svg><span>Pagamento seguro</span></div>
+        <div><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg><span>Acesso imediato</span></div>
+        <div><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5v5.4l4 2.4-1 1.7-5-3V7h2Z"/></svg><span>Garantia de <span data-garantia>7</span> dias</span></div>
+        <div><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"/></svg><span>Atualizações incluídas</span></div>
+      </div>
+    </section>
+
+    <!-- ============================== Recursos -->
+    <section id="recursos" class="secao">
+      <div class="container">
+        <p class="sobretitulo">Recursos</p>
+        <h2>Tudo o que você precisa para pensar com clareza</h2>
+        <p class="secao-intro">Os recursos dos grandes programas de mapa mental, num aplicativo leve, em português e sem assinatura.</p>
+        <div class="cartoes">
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M10 3H4v6h6V3Zm10 0h-6v6h6V3ZM10 15H4v6h6v-6Zm10 0h-6v6h6v-6Z"/></svg>
+            <h3>8 estruturas</h3>
+            <p>Mapa mental, lógico, à direita, organograma, árvore, linha do tempo e espinha de peixe.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M12 2 2 12l10 10 10-10L12 2Zm0 3.8L18.2 12 12 18.2 5.8 12 12 5.8Z"/></svg>
+            <h3>27 formas e estilos</h3>
+            <p>Losango, nuvem, setas, nota adesiva, cores, fontes, bordas, temas e até desenho à mão.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2ZM8.5 13.5l2.5 3 3.5-4.5 4.5 6H5l3.5-4.5Z"/></svg>
+            <h3>Imagens, documentos e links</h3>
+            <p>Arraste imagens e arquivos para o mapa, anexe PDFs e planilhas e coloque links em qualquer tópico.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M14.4 6 14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6Z"/></svg>
+            <h3>Marcadores e adesivos</h3>
+            <p>Prioridades, progresso, bandeiras, rostos, setas e centenas de adesivos para destacar o que importa.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M3 4h18v2H3V4Zm0 5h12v2H3V9Zm0 5h18v2H3v-2Zm0 5h12v2H3v-2Z"/></svg>
+            <h3>Esboço e Gantt</h3>
+            <p>Veja o mapa como lista editável ou como cronograma, com datas, responsáveis e progresso.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M21 3H3v13h7l-2 4h2l2-4 2 4h2l-2-4h7V3Zm-2 11H5V5h14v9Z"/></svg>
+            <h3>Apresentação</h3>
+            <p>Apresente ramo a ramo em tela cheia, use o modo Zen para focar e o minimapa para navegar.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2Zm14-11h-4V3H9v6H5l7 7 7-7Z"/></svg>
+            <h3>Exporta para tudo</h3>
+            <p>PNG, PDF, Word, Excel, HTML, Markdown, TXT, OPML e FreeMind. Também importa esses formatos.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2 4.9l-1.4 1.5A9 9 0 1 0 13 3Zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8H12Z"/></svg>
+            <h3>Salva sozinho</h3>
+            <p>Cada alteração é guardada na hora, com histórico de versões e lixeira para recuperar o que apagou.</p>
+          </article>
+          <article class="cartao">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 6h-3a15.7 15.7 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8ZM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4ZM4.3 14a8.2 8.2 0 0 1 0-4h3.4a16 16 0 0 0 0 4H4.3Zm.8 2h3a15.7 15.7 0 0 0 1.4 3.6A8 8 0 0 1 5.1 16Zm3-8h-3a8 8 0 0 1 4.4-3.6C8.9 5.5 8.4 6.7 8.1 8ZM12 20c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4Zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4Zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h3a8 8 0 0 1-4.4 3.6Zm1.8-5.6a16 16 0 0 0 0-4h3.4a8.2 8.2 0 0 1 0 4h-3.4Z"/></svg>
+            <h3>Wikipédia e imagens livres</h3>
+            <p>Pesquise um assunto e traga resumo, imagem e subtópicos prontos para o mapa.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Vitrine -->
+    <section class="secao secao-alternada">
+      <div class="container vitrine">
+        <div class="vitrine-linha">
+          <div>
+            <p class="sobretitulo">Organização</p>
+            <h2>Todos os seus mapas num só lugar</h2>
+            <p>Comece com um modelo pronto, cole um texto em tópicos para virar mapa ou abra arquivos de outros programas. Abra vários mapas em abas, como no navegador, e encontre qualquer um pela busca.</p>
+            <ul class="lista-check">
+              <li>Modelos para estudos, projetos, reuniões e vida pessoal</li>
+              <li>Favoritos, lixeira e histórico de versões</li>
+              <li>Texto vira mapa mental em um clique</li>
+            </ul>
+          </div>
+          <figure class="janela"><div class="janela-barra"><i></i><i></i><i></i></div><img src="img/tela-inicial.png" alt="Tela inicial do MapLong com a lista de mapas" width="1440" height="900" loading="lazy"></figure>
+        </div>
+        <div class="vitrine-linha invertida">
+          <div>
+            <p class="sobretitulo">Estilo</p>
+            <h2>Do seu jeito, do rascunho ao profissional</h2>
+            <p>Escolha entre 16 temas, gere um tema a partir de uma cor, use texturas e imagens de fundo, marca d'água e o estilo de desenho à mão. Salve o seu visual como tema para usar em outros mapas.</p>
+            <ul class="lista-check">
+              <li>Formas, fontes, bordas e linhas para cada tópico</li>
+              <li>Ramos coloridos por ramo, por nível ou arco-íris</li>
+              <li>Relações com setas, limites, resumos e balões</li>
+            </ul>
+          </div>
+          <figure class="janela"><div class="janela-barra"><i></i><i></i><i></i></div><img src="img/desenho-a-mao.png" alt="Mapa no estilo desenho à mão com fundo de papel" width="1440" height="900" loading="lazy"></figure>
+        </div>
+        <div class="vitrine-linha">
+          <div>
+            <p class="sobretitulo">Conforto</p>
+            <h2>Modo escuro para trabalhar por horas</h2>
+            <p>Interface moderna em português, com faixa de ferramentas, atalhos de teclado e painel lateral. Dois cliques editam um tópico; três cliques criam um tópico ligado a ele.</p>
+            <ul class="lista-check">
+              <li>Modo claro, escuro ou igual ao Windows</li>
+              <li>Os tópicos se reorganizam sozinhos enquanto você digita</li>
+              <li>Funciona sem internet: seus mapas ficam com você</li>
+            </ul>
+          </div>
+          <figure class="janela janela-escura"><div class="janela-barra"><i></i><i></i><i></i></div><img src="img/editor-escuro.png" alt="Editor do MapLong no modo escuro" width="1440" height="900" loading="lazy"></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Como funciona -->
+    <section id="como-funciona" class="secao">
+      <div class="container">
+        <p class="sobretitulo">Como funciona</p>
+        <h2>Comece a usar em 3 passos</h2>
+        <ol class="passos">
+          <li>
+            <span class="passo-numero">1</span>
+            <h3>Faça a compra</h3>
+            <p>Pague com Pix, cartão ou boleto na página segura de pagamento.</p>
+          </li>
+          <li>
+            <span class="passo-numero">2</span>
+            <h3>Receba o acesso</h3>
+            <p>Logo após a confirmação, chega no seu e-mail o link para baixar o MapLong.</p>
+          </li>
+          <li>
+            <span class="passo-numero">3</span>
+            <h3>Instale e crie</h3>
+            <p>Instale como qualquer programa do Windows e crie seu primeiro mapa em minutos.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============================== Preço -->
+    <section id="preco" class="secao secao-alternada">
+      <div class="container preco-grade">
+        <div>
+          <p class="sobretitulo">Preço</p>
+          <h2>Pague uma vez, use para sempre</h2>
+          <p class="secao-intro">Sem mensalidade e sem surpresas. Se não gostar, peça o reembolso dentro do prazo da garantia.</p>
+          <div class="garantia">
+            <svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 4.9-4.9 1.4 1.4-6.3 6.3Z"/></svg>
+            <div>
+              <strong>Garantia de <span data-garantia>7</span> dias</strong>
+              <span>Experimente sem risco. Não gostou, devolvemos o seu dinheiro.</span>
+            </div>
+          </div>
+        </div>
+        <div class="plano">
+          <p class="plano-nome">MapLong para Windows</p>
+          <p class="plano-preco">
+            <s data-preco-antigo hidden></s>
+            <strong data-preco>R$ 69,00</strong>
+            <span>pagamento único</span>
+          </p>
+          <p class="plano-parcelas" data-parcelamento hidden></p>
+          <ul class="lista-check">
+            <li>Todos os recursos liberados</li>
+            <li>Instalador para Windows 10 e 11</li>
+            <li>Uso sem internet e sem limite de mapas</li>
+            <li>Atualizações incluídas</li>
+            <li>Suporte por e-mail</li>
+          </ul>
+          <a class="botao botao-largo" data-comprar href="#preco">Comprar agora</a>
+          <p class="plano-seguro">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2ZM9 6a3 3 0 0 1 6 0v2H9V6Z"/></svg>
+            Pagamento processado com segurança pela plataforma de pagamento
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Dúvidas -->
+    <section id="duvidas" class="secao">
+      <div class="container estreito">
+        <p class="sobretitulo">Dúvidas</p>
+        <h2>Perguntas frequentes</h2>
+        <div class="perguntas">
+          <details>
+            <summary>Como eu recebo o MapLong depois de pagar?</summary>
+            <p>Assim que o pagamento é confirmado, você recebe um e-mail com o link para baixar o instalador. No Pix e no cartão, a confirmação costuma sair em poucos minutos; no boleto, em até 3 dias úteis.</p>
+          </details>
+          <details>
+            <summary>É uma assinatura?</summary>
+            <p>Não. Você paga uma única vez e usa para sempre, com as atualizações incluídas.</p>
+          </details>
+          <details>
+            <summary>Precisa de internet para usar?</summary>
+            <p>Não. O MapLong funciona sem internet e guarda seus mapas no seu computador. A internet só é usada em recursos opcionais, como a pesquisa na Wikipédia e o aviso de novas versões.</p>
+          </details>
+          <details>
+            <summary>Em quais computadores funciona?</summary>
+            <p>No Windows 10 e no Windows 11. Você pode instalar em todos os seus computadores.</p>
+          </details>
+          <details>
+            <summary>Consigo abrir mapas de outros programas?</summary>
+            <p>Sim. O MapLong importa arquivos FreeMind (.mm), OPML, Markdown e TXT, e exporta para PDF, Word, Excel (CSV), HTML, PNG e outros formatos.</p>
+          </details>
+          <details>
+            <summary>Quais as formas de pagamento?</summary>
+            <p>Pix, cartão de crédito (com parcelamento) e boleto, conforme as opções da página de pagamento.</p>
+          </details>
+          <details>
+            <summary>E se eu não gostar?</summary>
+            <p>Você tem <span data-garantia>7</span> dias de garantia. É só pedir o reembolso pelo e-mail da compra ou pela plataforma de pagamento.</p>
+          </details>
+          <details>
+            <summary>O Windows mostrou um aviso ao instalar. É normal?</summary>
+            <p>Sim. Programas novos podem mostrar o aviso "O Windows protegeu o computador". Clique em <strong>Mais informações</strong> e depois em <strong>Executar assim mesmo</strong>.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Chamada final -->
+    <section class="chamada">
+      <div class="container chamada-conteudo">
+        <h2>Pronto para organizar suas ideias?</h2>
+        <p>Pagamento único de <strong data-preco>R$ 69,00</strong>. Comece hoje mesmo.</p>
+        <a class="botao botao-branco" data-comprar href="#preco">Quero o MapLong</a>
+        <a class="link-web" data-versao-web hidden>ou experimente a versão para navegador</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="container rodape-linha">
+      <a class="marca" href="#inicio" aria-label="MapLong, início">
+        <img src="img/simbolo.png" alt="" width="73" height="30">
+        <span class="marca-texto">MAP<span>LONG</span></span>
+      </a>
+      <nav aria-label="Rodapé">
+        <a href="privacidade.html">Privacidade e termos</a>
+        <a data-email hidden>E-mail</a>
+        <a data-whatsapp hidden target="_blank" rel="noopener">WhatsApp</a>
+      </nav>
+      <p>© <span data-ano>2026</span> MapLong. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <a class="whatsapp-flutuante" data-whatsapp hidden target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6a12.8 12.8 0 0 1-4.9-4.4c-.4-.5-1.1-1.6-1.1-2.9s.7-2 .9-2.3c.2-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l2 .9c.3.2.5.2.6.3.1.2.1.7-.1 1.4Z"/></svg>
+  </a>
+</body>
+</html>

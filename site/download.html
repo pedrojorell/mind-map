@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baixar o MapLong</title>
+  <!-- Página entregue depois da compra: não aparece no Google. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#3B4CF5">
+  <link rel="icon" href="img/icone.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="topo">
+    <div class="container topo-linha">
+      <a class="marca" href="index.html" aria-label="MapLong, página inicial">
+        <img src="img/simbolo.png" alt="" width="73" height="30">
+        <span class="marca-texto">MAP<span>LONG</span></span>
+      </a>
+    </div>
+  </header>
+
+  <main class="pagina">
+    <div class="container estreito">
+      <p class="sobretitulo">Compra confirmada</p>
+      <h1>Obrigado! Seu MapLong está pronto para baixar</h1>
+      <p class="subtitulo">Baixe o instalador e siga os passos abaixo. Guarde esta página: você pode voltar a ela sempre que precisar instalar de novo.</p>
+
+      <p>
+        <a class="botao" data-download hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M5 20h14v-2H5v2Zm14-11h-4V3H9v6H5l7 7 7-7Z"/></svg>
+          Baixar o MapLong para Windows
+        </a>
+      </p>
+      <p class="caixa" data-sem-download>
+        O link para baixar o MapLong foi enviado para o seu e-mail. Se não encontrar,
+        procure também na caixa de spam ou fale com o suporte abaixo.
+      </p>
+
+      <h2>Como instalar</h2>
+      <ol>
+        <li>Abra o arquivo <strong>MapLong-Setup</strong> que você baixou (fica na pasta Downloads).</li>
+        <li>Se aparecer <strong>"O Windows protegeu o computador"</strong>, clique em
+          <strong>Mais informações</strong> e depois em <strong>Executar assim mesmo</strong>.
+          Esse aviso é normal em programas novos.</li>
+        <li>Clique em <strong>Avançar</strong> e depois em <strong>Instalar</strong>.</li>
+        <li>Pronto! Abra o MapLong pelo atalho na área de trabalho ou pelo menu Iniciar.</li>
+      </ol>
+
+      <div class="caixa">
+        <h3>Primeiros passos</h3>
+        <ul class="lista-check">
+          <li>Clique em <strong>Novo mapa</strong> ou escolha um modelo.</li>
+          <li><strong>Tab</strong> cria um subtópico e <strong>Enter</strong> cria um tópico ao lado.</li>
+          <li>Dois cliques editam um tópico; três cliques criam um tópico ligado a ele.</li>
+          <li>Tudo é salvo sozinho. Use <strong>Ctrl+S</strong> para guardar um arquivo .maplong.</li>
+        </ul>
+      </div>
+
+      <h2>Precisa de ajuda?</h2>
+      <p>
+        <a data-email data-mostrar-endereco hidden>E-mail</a>
+        <a class="botao botao-claro botao-pequeno" data-whatsapp hidden target="_blank" rel="noopener">Falar no WhatsApp</a>
+      </p>
+      <p data-sem-contato>Responda ao e-mail da compra que nós ajudamos você.</p>
+    </div>
+  </main>
+
+  <footer class="rodape">
+    <div class="container rodape-linha">
+      <span class="marca-texto">MAP<span>LONG</span></span>
+      <nav aria-label="Rodapé"><a href="privacidade.html">Privacidade e termos</a></nav>
+      <p>© <span data-ano>2026</span> MapLong.</p>
+    </div>
+  </footer>
+</body>
+</html>

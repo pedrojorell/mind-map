@@ -36,8 +36,9 @@ Ao final deste guia você terá:
 - Um **instalador** `MapLong-Setup-2.1.0.exe`, que instala o MapLong como
   qualquer programa: atalho no menu Iniciar e na área de trabalho,
   desinstalação pelo Windows e arquivos `.maplong` abrindo com dois cliques.
-- A **versão web** publicada na internet, em
-  `https://pedrojorell.github.io/mind-map/`.
+- O **site de vendas** publicado na internet, em
+  `https://pedrojorell.github.io/mind-map/` (e, se quiser, a versão para
+  navegador em `/app/`). Guia completo: [SITE_DE_VENDAS.md](SITE_DE_VENDAS.md).
 
 ---
 
@@ -356,57 +357,38 @@ arquivos `.maplong`.)
 
 ---
 
-## 8. Colocar a versão web no ar
+## 8. Colocar o site no ar
 
-A versão web é publicada **de graça** no **GitHub Pages**, automaticamente,
-toda vez que o branch `main` é atualizado.
+O projeto tem um **site de vendas** pronto (pasta `site/`), com o botão
+**Comprar** ligado ao link de pagamento da Kiwify, Cakto, Kirvano ou outra
+plataforma. O passo a passo completo (onde colar o link, como cadastrar o
+produto em cada plataforma e como publicar no GitHub Pages, Netlify ou
+Vercel) está em **[SITE_DE_VENDAS.md](SITE_DE_VENDAS.md)**.
 
-### 8.1 Juntar o MapLong no `main` (uma vez)
+Resumo do GitHub Pages:
 
-1. Abra
+1. Junte o branch ao `main`: abra
    https://github.com/pedrojorell/mind-map/compare/main...claude/design-variation-3361e6
-2. Clique em **Create pull request** → **Create pull request**.
-3. Clique em **Merge pull request** → **Confirm merge**.
+   → **Create pull request** → **Merge pull request**.
+2. **Settings** → **Pages** → **Source: GitHub Actions**.
+3. Aba **Actions** → **Publicar site** → **Run workflow**.
 
-### 8.2 Ligar o GitHub Pages (uma vez)
+✅ O site fica em **https://pedrojorell.github.io/mind-map/**.
 
-1. No repositório, abra **Settings** → **Pages** (menu da esquerda).
-2. Em **Build and deployment → Source**, escolha **GitHub Actions**.
+### 8.1 Versão para navegador (opcional)
 
-### 8.3 Publicar
+Para publicar também o MapLong que roda no navegador, em
+`https://pedrojorell.github.io/mind-map/app/`, crie a variável
+**PUBLICAR_APP_WEB** com o valor **true** em **Settings** → **Secrets and
+variables** → **Actions** → aba **Variables** → **New repository variable**.
+Atenção: quem tiver esse endereço usa o MapLong de graça.
 
-A publicação roda sozinha a cada atualização do `main`. Para rodar agora:
-aba **Actions** → **Publicar versão web** → **Run workflow**.
-
-Ela: baixa o Flutter, analisa o código, roda os testes, compila a versão web
-e publica. Se os testes falharem, **nada é publicado** (o site antigo continua).
-
-✅ Depois de uns 5 minutos o site estará em:
-
-**https://pedrojorell.github.io/mind-map/**
-
-### 8.4 Outras hospedagens (opcional)
-
-Compile e envie a pasta `build\web` para qualquer hospedagem de site estático
-(Netlify, Vercel, Firebase Hosting, Cloudflare Pages):
+### 8.2 Testar a versão para navegador no seu computador
 
 ```powershell
 flutter build web --release --no-tree-shake-icons
+npx serve build\web -l 8080
 ```
-
-- **Netlify (sem instalar nada):** entre em https://app.netlify.com/drop e
-  arraste a pasta `build\web` para a página. Pronto.
-- Se o site ficar numa **subpasta** (ex.: `/mind-map/`), compile com
-  `--base-href "/mind-map/"`. Na raiz do domínio, não precisa.
-
-### 8.5 Testar a versão web no seu computador antes de publicar
-
-```powershell
-flutter build web --release --no-tree-shake-icons
-python -m http.server 8080 --directory build\web
-```
-
-(Sem Python? Com o Node.js instalado, use `npx serve build\web -l 8080`.)
 
 Abra http://localhost:8080 no navegador. `Ctrl+C` no PowerShell encerra.
 
